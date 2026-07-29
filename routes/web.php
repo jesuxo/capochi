@@ -76,6 +76,11 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
 
+    Route::match(['get','post'],'/reporte/instpagobs',      [App\Http\Controllers\SatarjController::class, 'instpagobs'])->name('instpagobs');
+    Route::match(['get','post'],'/reporte/instpagodolares', [App\Http\Controllers\SatarjController::class, 'instpagodolares'])->name('instpagodolares');
+
+
+
     // Dentro de Route::middleware(['auth'])->group(function () {
     Route::prefix('inventario')->group(function() {
         Route::post('/categorias-tree', [InventarioHistoricoController::class, 'getCategoriasTree']);
@@ -200,8 +205,6 @@ Route::middleware(['auth'])->group(function () {
 
     Route::match(['get','post'],'/reporte/inventarios',     [App\Http\Controllers\SaprodController::class, 'inventarios'])->name('inventarios');
 
-    Route::match(['get','post'],'/reporte/instpagobs',      [App\Http\Controllers\SatarjController::class, 'instpagobs'])->name('instpagobs');
-    Route::match(['get','post'],'/reporte/instpagodolares', [App\Http\Controllers\SatarjController::class, 'instpagodolares'])->name('instpagodolares');
     Route::post( '/reporte/detinstpagodolares', [App\Http\Controllers\SatarjController::class, 'detinstpagodolares'])->name('detinstpagodolares');
 
     Route::match(['get','post'],'/reporte/venta', [App\Http\Controllers\HomeController::class, 'reporteventa'])->name('reporteventa');
