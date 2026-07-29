@@ -112,7 +112,7 @@
 
                         <div class="row mt-3">
                             @if($fecha1!='')
-                                <div class="col-md-2">
+                                <div class="col-md-3">
                                     <select class="form-select" data-choices onchange="$('#form1').submit()"
                                             id="idsucu" name="fksucursal">
                                         <option {{($fksucursal == '' or $fksucursal == 0)?'selected':''}} value="0">
