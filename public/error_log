@@ -1,0 +1,1 @@
+[10-Apr-2026 10:38:35 America/Caracas] PHP Fatal error:  Allowed memory size of 536870912 bytes exhausted (tried to allocate 8192 bytes) in /home1/celishos/public_html/capochi/vendor/laravel/framework/src/Illuminate/Database/Connection.php on line 423
