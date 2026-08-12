@@ -776,6 +776,7 @@ class InventarioHistoricoController extends Controller
                             'total_productos' => 0,
                             'inventario_inicial_total' => 0,
                             'inventario_final_total' => 0,
+                            'diferencia_total' => 0,
                             'ultima_fecha_trabajada' => null,
                             'mensaje' => 'No se encontró sincronización para la fecha seleccionada'
                         ]
@@ -807,65 +808,97 @@ class InventarioHistoricoController extends Controller
                         'total_productos' => 0,
                         'inventario_inicial_total' => 0,
                         'inventario_final_total' => 0,
+                        'diferencia_total' => 0,
                         'ultima_fecha_trabajada' => $ultimaFechaTrabajada ? Carbon::parse($ultimaFechaTrabajada)->format('d/m/Y') : null,
                         'mensaje' => 'No hay sincronización para la fecha seleccionada'
                     ]
                 ]);
             }
 
-            // ========== OBTENER MOVIMIENTOS ==========
+            // ========== OBTENER MOVIMIENTOS CON SUMAS AGRUPADAS ==========
+
             // 1. Cargos (TipoOpI = 'O') - AUMENTAN inventario
             $cargosQuery = Saitemopi::where('fk_sucursal', $sucursalId)
                 ->whereDate('FechaE', $fecha)
-                ->where('TipoOpI', 'O');
+                ->where('TipoOpI', 'O')
+                ->select('CodItem', DB::raw('CAST(SUM(Cantidad) AS DECIMAL(10,3)) as total_cantidad'))
+                ->groupBy('CodItem');
             $cargosData = $cargosQuery->get();
-            $cargos = $cargosData->groupBy('CodItem');
+            $cargos = [];
+            foreach ($cargosData as $item) {
+                $cargos[$item->CodItem] = (float) $item->total_cantidad;
+            }
 
             // 2. Descargos (TipoOpI = 'P') - DISMINUYEN inventario
             $descargosQuery = Saitemopi::where('fk_sucursal', $sucursalId)
                 ->whereDate('FechaE', $fecha)
-                ->where('TipoOpI', 'P');
+                ->where('TipoOpI', 'P')
+                ->select('CodItem', DB::raw('CAST(SUM(Cantidad) AS DECIMAL(10,3)) as total_cantidad'))
+                ->groupBy('CodItem');
             $descargosData = $descargosQuery->get();
-            $descargos = $descargosData->groupBy('CodItem');
+            $descargos = [];
+            foreach ($descargosData as $item) {
+                $descargos[$item->CodItem] = (float) $item->total_cantidad;
+            }
 
             // 3. Compras (tipocom = 'H') - AUMENTAN inventario
             $comprasQuery = Saitemcom::where('fk_sucursal', $sucursalId)
                 ->whereDate('fechae', $fecha)
-                ->where('tipocom', 'H');
+                ->where('tipocom', 'H')
+                ->select('coditem', DB::raw('CAST(SUM(cantidad) AS DECIMAL(10,3)) as total_cantidad'))
+                ->groupBy('coditem');
             $comprasData = $comprasQuery->get();
-            $compras = $comprasData->groupBy('coditem');
+            $compras = [];
+            foreach ($comprasData as $item) {
+                $compras[$item->coditem] = (float) $item->total_cantidad;
+            }
 
             // 4. Devoluciones de compra (tipocom = 'I') - DISMINUYEN inventario
             $devComprasQuery = Saitemcom::where('fk_sucursal', $sucursalId)
                 ->whereDate('fechae', $fecha)
-                ->where('tipocom', 'I');
+                ->where('tipocom', 'I')
+                ->select('coditem', DB::raw('CAST(SUM(cantidad) AS DECIMAL(10,3)) as total_cantidad'))
+                ->groupBy('coditem');
             $devComprasData = $devComprasQuery->get();
-            $devolucionesCompras = $devComprasData->groupBy('coditem');
+            $devolucionesCompras = [];
+            foreach ($devComprasData as $item) {
+                $devolucionesCompras[$item->coditem] = (float) $item->total_cantidad;
+            }
 
             // 5. Ventas (TipoFac = 'A') - DISMINUYEN inventario
             $ventasQuery = Saitemfac::where('fk_sucursal', $sucursalId)
                 ->whereDate('FechaE', $fecha)
-                ->where('TipoFac', 'A');
+                ->where('TipoFac', 'A')
+                ->select('CodItem', DB::raw('CAST(SUM(Cantidad) AS DECIMAL(10,3)) as total_cantidad'))
+                ->groupBy('CodItem');
             $ventasData = $ventasQuery->get();
-            $ventas = $ventasData->groupBy('CodItem');
+            $ventas = [];
+            foreach ($ventasData as $item) {
+                $ventas[$item->CodItem] = (float) $item->total_cantidad;
+            }
 
             // 6. Devoluciones de venta (TipoFac = 'B') - AUMENTAN inventario
             $devVentasQuery = Saitemfac::where('fk_sucursal', $sucursalId)
                 ->whereDate('FechaE', $fecha)
-                ->where('TipoFac', 'B');
+                ->where('TipoFac', 'B')
+                ->select('CodItem', DB::raw('CAST(SUM(Cantidad) AS DECIMAL(10,3)) as total_cantidad'))
+                ->groupBy('CodItem');
             $devVentasData = $devVentasQuery->get();
-            $devolucionesVentas = $devVentasData->groupBy('CodItem');
+            $devolucionesVentas = [];
+            foreach ($devVentasData as $item) {
+                $devolucionesVentas[$item->CodItem] = (float) $item->total_cantidad;
+            }
 
             // Obtener todos los códigos de productos involucrados
             $todosCodigos = collect();
             $todosCodigos = $todosCodigos->merge($inventarioAnterior->keys());
             $todosCodigos = $todosCodigos->merge($inventarioActual->keys());
-            $todosCodigos = $todosCodigos->merge($compras->keys());
-            $todosCodigos = $todosCodigos->merge($devolucionesCompras->keys());
-            $todosCodigos = $todosCodigos->merge($ventas->keys());
-            $todosCodigos = $todosCodigos->merge($devolucionesVentas->keys());
-            $todosCodigos = $todosCodigos->merge($cargos->keys());
-            $todosCodigos = $todosCodigos->merge($descargos->keys());
+            $todosCodigos = $todosCodigos->merge(array_keys($compras));
+            $todosCodigos = $todosCodigos->merge(array_keys($devolucionesCompras));
+            $todosCodigos = $todosCodigos->merge(array_keys($ventas));
+            $todosCodigos = $todosCodigos->merge(array_keys($devolucionesVentas));
+            $todosCodigos = $todosCodigos->merge(array_keys($cargos));
+            $todosCodigos = $todosCodigos->merge(array_keys($descargos));
             $todosCodigos = $todosCodigos->unique();
 
             $datos = [];
@@ -896,18 +929,16 @@ class InventarioHistoricoController extends Controller
                 $inicial = $inventarioAnterior->get($codprod);
                 $actual = $inventarioActual->get($codprod);
 
-                $cantidadInicial = $inicial ? $inicial->existen : 0;
-                $cantidadActual = $actual ? $actual->existen : 0;
+                $cantidadInicial = $inicial ? (float) $inicial->existen : 0;
+                $cantidadActual = $actual ? (float) $actual->existen : 0;
 
-                // SUMAR cantidades de movimientos
-                $totalCargos = $cargos->get($codprod, collect())->sum('Cantidad');
-                $totalDescargos = $descargos->get($codprod, collect())->sum('Cantidad');
-
-                $totalCompras = $compras->get($codprod, collect())->sum('cantidad');
-                $totalDevCompras = $devolucionesCompras->get($codprod, collect())->sum('cantidad');
-
-                $totalVentas = $ventas->get($codprod, collect())->sum('Cantidad');
-                $totalDevVentas = $devolucionesVentas->get($codprod, collect())->sum('Cantidad');
+                // Obtener sumas de movimientos
+                $totalCargos = $cargos[$codprod] ?? 0;
+                $totalDescargos = $descargos[$codprod] ?? 0;
+                $totalCompras = $compras[$codprod] ?? 0;
+                $totalDevCompras = $devolucionesCompras[$codprod] ?? 0;
+                $totalVentas = $ventas[$codprod] ?? 0;
+                $totalDevVentas = $devolucionesVentas[$codprod] ?? 0;
 
                 // Si no hay movimientos y el inventario es 0, saltar
                 if ($totalCargos == 0 && $totalDescargos == 0 &&
@@ -926,7 +957,9 @@ class InventarioHistoricoController extends Controller
                     - $totalVentas
                     + $totalDevVentas;
 
-                $diferencia = $deberiaHaber - $cantidadActual;
+                // Redondear a 3 decimales para evitar problemas de precisión
+                $deberiaHaber = round($deberiaHaber, 3);
+                $diferencia = round($deberiaHaber - $cantidadActual, 3);
 
                 $datos[] = [
                     'codprod' => $codprod,
@@ -957,14 +990,17 @@ class InventarioHistoricoController extends Controller
             }
 
             // Calcular diferencia total
-            $resumen['diferencia_total'] = $resumen['inventario_inicial_total']
+            $resumen['diferencia_total'] = round(
+                $resumen['inventario_inicial_total']
                 + $resumen['total_cargos']
                 - $resumen['total_descargos']
                 + $resumen['total_compras']
                 - $resumen['total_devoluciones_compras']
                 - $resumen['total_ventas']
                 + $resumen['total_devoluciones_ventas']
-                - $resumen['inventario_final_total'];
+                - $resumen['inventario_final_total'],
+                3
+            );
 
             // Ordenar por diferencia (mayor a menor)
             usort($datos, function($a, $b) {

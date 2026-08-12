@@ -14,6 +14,12 @@ class Saitemfac extends Model
         'CodVend', 'NroUnicoL', 'ExistAntU', 'ExistAnt', 'FechaL', 'FechaV', 'esfiscal', 'preciod', 'costod',  'EsUnid', 'basecostod',
         'costodoriginal','fk_sucursal' ];
 
+    protected $casts = [
+        'Cantidad' => 'float',
+        'preciod'  => 'float',
+        'costod'   => 'float',
+    ];
+
     public function factura  (){
         return $this->belongsTo(Safact::class, 'NumeroD', 'NumeroD')->whereTipofac('safact.tipofac')->whereNumerod('safact.NumeroD');
     }
