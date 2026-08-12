@@ -733,9 +733,6 @@ class InventarioHistoricoController extends Controller
         return view('inventario-seguimiento', compact('sucursales'));
     }
 
-    /**
-     * Obtener datos del seguimiento diario de inventario
-     */
     public function getSeguimientoDiarioData(Request $request)
     {
         try {
@@ -743,7 +740,6 @@ class InventarioHistoricoController extends Controller
             $fecha = $request->input('fecha', Carbon::now()->format('Y-m-d'));
             $sucursalId = $request->input('sucursal_id', 0);
 
-            // Si no hay sucursal seleccionada, retornar vacío
             if ($sucursalId == 0) {
                 return response()->json([
                     'success' => true,
@@ -752,7 +748,6 @@ class InventarioHistoricoController extends Controller
                 ]);
             }
 
-            // Obtener la sucursal
             $sucursal = Sasucursal::find($sucursalId);
             if (!$sucursal) {
                 return response()->json([
@@ -761,16 +756,13 @@ class InventarioHistoricoController extends Controller
                 ]);
             }
 
-            // ========== NUEVO: OBTENER LA ÚLTIMA FECHA TRABAJADA ==========
-            // Buscar la última fecha donde haya sincronización ANTES de la fecha seleccionada
+            // ========== OBTENER INVENTARIOS ==========
             $ultimaFechaTrabajada = Saeprdday::where('fksucursal', $sucursalId)
                 ->where('fecha', '<', $fecha)
                 ->orderBy('fecha', 'desc')
                 ->value('fecha');
 
-            // Si no hay fecha anterior, usamos la fecha seleccionada (no habrá inventario inicial)
             if (!$ultimaFechaTrabajada) {
-                // Buscar si hay sincronización en la fecha seleccionada
                 $tieneSyncHoy = Saeprdday::where('fksucursal', $sucursalId)
                     ->where('fecha', $fecha)
                     ->exists();
@@ -792,27 +784,22 @@ class InventarioHistoricoController extends Controller
                     ]);
                 }
 
-                // Si solo hay sincronización hoy, usamos hoy como fecha inicial
                 $ultimaFechaTrabajada = $fecha;
                 $fechaAnterior = $fecha;
-                $inventarioAnterior = collect(); // Vacío
+                $inventarioAnterior = collect();
             } else {
                 $fechaAnterior = $ultimaFechaTrabajada;
-
-                // Obtener inventario del día anterior trabajado
                 $inventarioAnterior = Saeprdday::where('fecha', $fechaAnterior)
                     ->where('fksucursal', $sucursalId)
                     ->get()
                     ->keyBy('codprod');
             }
 
-            // Obtener inventario del día actual (sincronización)
             $inventarioActual = Saeprdday::where('fecha', $fecha)
                 ->where('fksucursal', $sucursalId)
                 ->get()
                 ->keyBy('codprod');
 
-            // Si no hay inventario actual, retornar mensaje
             if ($inventarioActual->isEmpty()) {
                 return response()->json([
                     'success' => true,
@@ -830,47 +817,130 @@ class InventarioHistoricoController extends Controller
                 ]);
             }
 
-            // Obtener todas las compras del día (que aumentan inventario)
-            $compras = Saitemcom::where('fk_sucursal', $sucursalId)
-                ->whereDate('fechae', $fecha)
-                ->where('tipocom', 'H') // Solo compras normales
-                ->get()
-                ->groupBy('coditem');
+            // ========== OBTENER MOVIMIENTOS ==========
+            // Usar whereDate con el campo correcto (FechaE en mayúscula)
 
-            // Obtener devoluciones de compra del día (disminuyen inventario)
-            $devolucionesCompras = Saitemcom::where('fk_sucursal', $sucursalId)
-                ->whereDate('fechae', $fecha)
-                ->where('tipocom', 'I')
-                ->get()
-                ->groupBy('coditem');
+            // 1. Cargos (TipoOpI = 'O') - AUMENTAN inventario
+            $cargosQuery = Saitemopi::where('fk_sucursal', $sucursalId)
+                ->whereDate('FechaE', $fecha)
+                ->where('TipoOpI', 'O');
 
-            // Obtener ventas del día (disminuyen inventario)
-            $ventas = Saitemfac::where('fk_sucursal', $sucursalId)
-                ->whereDate('fechae', $fecha)
-                ->where('tipofac', 'A')
-                ->get()
-                ->groupBy('coditem');
+            $cargosData = $cargosQuery->get();
+            $cargos = $cargosData->groupBy('CodItem');
+            $debugCargos = [
+                'count' => $cargosQuery->count(),
+                'sample' => $cargosData->take(3)->map(function($item) {
+                    return [
+                        'CodItem' => $item->CodItem,
+                        'Cantidad' => $item->Cantidad,
+                        'TipoOpI' => $item->TipoOpI,
+                        'Signo' => $item->Signo,
+                        'FechaE' => $item->FechaE,
+                        'fk_sucursal' => $item->fk_sucursal
+                    ];
+                })
+            ];
 
-            // Obtener devoluciones de venta del día (aumentan inventario)
-            $devolucionesVentas = Saitemfac::where('fk_sucursal', $sucursalId)
-                ->whereDate('fechae', $fecha)
-                ->where('tipofac', 'B')
-                ->get()
-                ->groupBy('coditem');
+            // 2. Descargos (TipoOpI = 'P') - DISMINUYEN inventario
+            $descargosQuery = Saitemopi::where('fk_sucursal', $sucursalId)
+                ->whereDate('FechaE', $fecha)
+                ->where('TipoOpI', 'P');
 
-            // Obtener cargos del día (tipoopi = 'O' - aumentan inventario)
-            $cargos = Saitemopi::where('fk_sucursal', $sucursalId)
-                ->whereDate('fechae', $fecha)
-                ->where('tipoopi', 'O')
-                ->get()
-                ->groupBy('coditem');
+            $descargosData = $descargosQuery->get();
+            $descargos = $descargosData->groupBy('CodItem');
+            $debugDescargos = [
+                'count' => $descargosQuery->count(),
+                'sample' => $descargosData->take(3)->map(function($item) {
+                    return [
+                        'CodItem' => $item->CodItem,
+                        'Cantidad' => $item->Cantidad,
+                        'TipoOpI' => $item->TipoOpI,
+                        'Signo' => $item->Signo,
+                        'FechaE' => $item->FechaE,
+                        'fk_sucursal' => $item->fk_sucursal
+                    ];
+                })
+            ];
 
-            // Obtener descargos del día (tipoopi = 'P' - disminuyen inventario)
-            $descargos = Saitemopi::where('fk_sucursal', $sucursalId)
+            // 3. Compras (tipocom = 'H') - AUMENTAN inventario
+            $comprasQuery = Saitemcom::where('fk_sucursal', $sucursalId)
                 ->whereDate('fechae', $fecha)
-                ->where('tipoopi', 'P')
-                ->get()
-                ->groupBy('coditem');
+                ->where('tipocom', 'H');
+            $comprasData = $comprasQuery->get();
+            $compras = $comprasData->groupBy('coditem');
+
+            // 4. Devoluciones de compra (tipocom = 'I') - DISMINUYEN inventario
+            $devComprasQuery = Saitemcom::where('fk_sucursal', $sucursalId)
+                ->whereDate('fechae', $fecha)
+                ->where('tipocom', 'I');
+            $devolucionesCompras = $devComprasQuery->get()->groupBy('coditem');
+
+            // 5. Ventas (tipofac = 'A') - DISMINUYEN inventario
+            $ventasQuery = Saitemfac::where('fk_sucursal', $sucursalId)
+                ->whereDate('fechae', $fecha)
+                ->where('tipofac', 'A');
+            $ventasData = $ventasQuery->get();
+            $ventas = $ventasData->groupBy('coditem');
+
+            // 6. Devoluciones de venta (tipofac = 'B') - AUMENTAN inventario
+            $devVentasQuery = Saitemfac::where('fk_sucursal', $sucursalId)
+                ->whereDate('fechae', $fecha)
+                ->where('tipofac', 'B');
+            $devolucionesVentas = $devVentasQuery->get()->groupBy('coditem');
+
+            // ========== LOG DE DEPURACIÓN ==========
+            \Log::info('=== SEGUIMIENTO DIARIO ===');
+            \Log::info('Fecha: ' . $fecha);
+            \Log::info('Sucursal ID: ' . $sucursalId);
+            \Log::info('Cargos encontrados: ' . $cargosQuery->count());
+            \Log::info('Descargos encontrados: ' . $descargosQuery->count());
+            \Log::info('Compras encontradas: ' . $comprasQuery->count());
+            \Log::info('Ventas encontradas: ' . $ventasQuery->count());
+
+            // Si no hay movimientos, mostrar mensaje de depuración
+            if ($cargosQuery->count() == 0 && $descargosQuery->count() == 0 &&
+                $comprasQuery->count() == 0 && $ventasQuery->count() == 0) {
+
+                // Verificar si hay datos sin el filtro de sucursal
+                $cargosSinFiltro = Saitemopi::whereDate('FechaE', $fecha)->where('TipoOpI', 'O')->count();
+                $descargosSinFiltro = Saitemopi::whereDate('FechaE', $fecha)->where('TipoOpI', 'P')->count();
+                $comprasSinFiltro = Saitemcom::whereDate('fechae', $fecha)->where('tipocom', 'H')->count();
+                $ventasSinFiltro = Saitemfac::whereDate('fechae', $fecha)->where('tipofac', 'A')->count();
+
+                \Log::info('=== DATOS SIN FILTRO DE SUCURSAL ===');
+                \Log::info('Cargos sin filtro: ' . $cargosSinFiltro);
+                \Log::info('Descargos sin filtro: ' . $descargosSinFiltro);
+                \Log::info('Compras sin filtro: ' . $comprasSinFiltro);
+                \Log::info('Ventas sin filtro: ' . $ventasSinFiltro);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No se encontraron movimientos para esta fecha',
+                    'data' => [],
+                    'resumen' => [
+                        'total_productos' => 0,
+                        'inventario_inicial_total' => $inventarioAnterior->sum('existen'),
+                        'inventario_final_total' => $inventarioActual->sum('existen'),
+                        'merma_total' => 0,
+                        'merma_porcentaje' => 0,
+                        'mensaje' => 'No hay movimientos (cargos, descargos, compras o ventas)',
+                        'debug' => [
+                            'cargos_sin_filtro' => $cargosSinFiltro,
+                            'descargos_sin_filtro' => $descargosSinFiltro,
+                            'compras_sin_filtro' => $comprasSinFiltro,
+                            'ventas_sin_filtro' => $ventasSinFiltro
+                        ]
+                    ],
+                    'debug' => [
+                        'cargos' => $debugCargos,
+                        'descargos' => $debugDescargos,
+                        'compras_count' => $comprasQuery->count(),
+                        'ventas_count' => $ventasQuery->count(),
+                        'inventario_inicial_count' => $inventarioAnterior->count(),
+                        'inventario_final_count' => $inventarioActual->count()
+                    ]
+                ]);
+            }
 
             // Obtener todos los códigos de productos involucrados
             $todosCodigos = collect();
@@ -884,19 +954,22 @@ class InventarioHistoricoController extends Controller
             $todosCodigos = $todosCodigos->merge($descargos->keys());
             $todosCodigos = $todosCodigos->unique();
 
-            // Construir datos de seguimiento
             $datos = [];
             $resumen = [
                 'total_productos' => 0,
-                'total_compras' => 0,
-                'total_ventas' => 0,
                 'total_cargos' => 0,
                 'total_descargos' => 0,
+                'total_compras' => 0,
+                'total_devoluciones_compras' => 0,
+                'total_ventas' => 0,
+                'total_devoluciones_ventas' => 0,
                 'inventario_inicial_total' => 0,
                 'inventario_final_total' => 0,
                 'merma_total' => 0,
                 'merma_porcentaje' => 0,
                 'ultima_fecha_trabajada' => $ultimaFechaTrabajada ? Carbon::parse($ultimaFechaTrabajada)->format('d/m/Y') : null,
+                'fecha_anterior_trabajada' => $ultimaFechaTrabajada ? Carbon::parse($ultimaFechaTrabajada)->format('d/m/Y') : 'Sin dato anterior',
+                'fecha_actual' => Carbon::parse($fecha)->format('d/m/Y'),
                 'dias_sin_sincronizar' => $ultimaFechaTrabajada ? Carbon::parse($ultimaFechaTrabajada)->diffInDays($fecha) : 0
             ];
 
@@ -913,80 +986,103 @@ class InventarioHistoricoController extends Controller
                 $cantidadInicial = $inicial ? $inicial->existen : 0;
                 $cantidadActual = $actual ? $actual->existen : 0;
 
-                // Calcular movimientos
+                // SUMAR cantidades de movimientos
+                // Usar el campo Cantidad (con mayúscula) para Saitemopi
+                $totalCargos = $cargos->get($codprod, collect())->sum('Cantidad');
+                $totalDescargos = $descargos->get($codprod, collect())->sum('Cantidad');
+
+                // Para Saitemcom y Saitemfac usar cantidad (minúscula)
                 $totalCompras = $compras->get($codprod, collect())->sum('cantidad');
                 $totalDevCompras = $devolucionesCompras->get($codprod, collect())->sum('cantidad');
                 $totalVentas = $ventas->get($codprod, collect())->sum('cantidad');
                 $totalDevVentas = $devolucionesVentas->get($codprod, collect())->sum('cantidad');
-                $totalCargos = $cargos->get($codprod, collect())->sum('cantidad');
-                $totalDescargos = $descargos->get($codprod, collect())->sum('cantidad');
 
-                // Calcular merma (diferencia entre lo que debería haber y lo que hay)
-                $deberiaHaber = $cantidadInicial + $totalCompras - $totalDevCompras - $totalVentas + $totalDevVentas + $totalCargos - $totalDescargos;
+                // Si no hay movimientos y el inventario es 0, saltar
+                if ($totalCargos == 0 && $totalDescargos == 0 &&
+                    $totalCompras == 0 && $totalDevCompras == 0 &&
+                    $totalVentas == 0 && $totalDevVentas == 0 &&
+                    $cantidadInicial == 0 && $cantidadActual == 0) {
+                    continue;
+                }
+
+                // Calcular lo que debería haber:
+                // Inicial + Cargos - Descargos + Compras - DevCompras - Ventas + DevVentas
+                $deberiaHaber = $cantidadInicial
+                    + $totalCargos
+                    - $totalDescargos
+                    + $totalCompras
+                    - $totalDevCompras
+                    - $totalVentas
+                    + $totalDevVentas;
+
                 $merma = $deberiaHaber - $cantidadActual;
 
-                // Solo mostrar productos con movimiento o con merma
-                if ($totalCompras > 0 || $totalDevCompras > 0 || $totalVentas > 0 ||
-                    $totalDevVentas > 0 || $totalCargos > 0 || $totalDescargos > 0 ||
-                    $cantidadInicial > 0 || $cantidadActual > 0 || $merma != 0) {
-
-                    $datos[] = [
-                        'codprod' => $codprod,
-                        'descrip' => $prodInfo->descrip ?? $codprod,
-                        'categoria' => $prodInfo->instancia->descrip ?? 'N/A',
-                        'inventario_inicial' => $cantidadInicial,
-                        'inventario_final' => $cantidadActual,
-                        'compras' => $totalCompras,
-                        'devoluciones_compras' => $totalDevCompras,
-                        'ventas' => $totalVentas,
-                        'devoluciones_ventas' => $totalDevVentas,
-                        'cargos' => $totalCargos,
-                        'descargos' => $totalDescargos,
-                        'deberia_haber' => $deberiaHaber,
-                        'merma' => $merma,
-                        'merma_porcentaje' => $deberiaHaber > 0 ? round(($merma / $deberiaHaber) * 100, 2) : 0
-                    ];
-
-                    // Actualizar resumen
-                    $resumen['total_productos']++;
-                    $resumen['total_compras'] += $totalCompras;
-                    $resumen['total_ventas'] += $totalVentas;
-                    $resumen['total_cargos'] += $totalCargos;
-                    $resumen['total_descargos'] += $totalDescargos;
-                    $resumen['inventario_inicial_total'] += $cantidadInicial;
-                    $resumen['inventario_final_total'] += $cantidadActual;
-                    $resumen['merma_total'] += $merma;
+                $mermaPorcentaje = 0;
+                if ($deberiaHaber > 0) {
+                    $mermaPorcentaje = round(($merma / $deberiaHaber) * 100, 2);
+                } elseif ($cantidadActual > 0 && $deberiaHaber == 0) {
+                    $mermaPorcentaje = -100;
                 }
+
+                $datos[] = [
+                    'codprod' => $codprod,
+                    'descrip' => $prodInfo->descrip ?? $codprod,
+                    'categoria' => $prodInfo->instancia->descrip ?? 'N/A',
+                    'inventario_inicial' => $cantidadInicial,
+                    'inventario_final' => $cantidadActual,
+                    'cargos' => $totalCargos,
+                    'descargos' => $totalDescargos,
+                    'compras' => $totalCompras,
+                    'devoluciones_compras' => $totalDevCompras,
+                    'ventas' => $totalVentas,
+                    'devoluciones_ventas' => $totalDevVentas,
+                    'deberia_haber' => $deberiaHaber,
+                    'merma' => $merma,
+                    'merma_porcentaje' => $mermaPorcentaje
+                ];
+
+                // Actualizar resumen
+                $resumen['total_productos']++;
+                $resumen['total_cargos'] += $totalCargos;
+                $resumen['total_descargos'] += $totalDescargos;
+                $resumen['total_compras'] += $totalCompras;
+                $resumen['total_devoluciones_compras'] += $totalDevCompras;
+                $resumen['total_ventas'] += $totalVentas;
+                $resumen['total_devoluciones_ventas'] += $totalDevVentas;
+                $resumen['inventario_inicial_total'] += $cantidadInicial;
+                $resumen['inventario_final_total'] += $cantidadActual;
+                $resumen['merma_total'] += $merma;
             }
 
-            // Calcular porcentaje de merma total
             $resumen['merma_porcentaje'] = $resumen['inventario_inicial_total'] > 0
                 ? round(($resumen['merma_total'] / $resumen['inventario_inicial_total']) * 100, 2)
                 : 0;
-
-            // Agregar información de fechas al resumen
-            $resumen['fecha_actual'] = Carbon::parse($fecha)->format('d/m/Y');
-            $resumen['fecha_anterior_trabajada'] = $ultimaFechaTrabajada ? Carbon::parse($ultimaFechaTrabajada)->format('d/m/Y') : 'Sin dato anterior';
 
             // Ordenar por merma (mayor a menor)
             usort($datos, function($a, $b) {
                 return abs($b['merma']) - abs($a['merma']);
             });
 
-            // Obtener información de la sucursal
-            $sucursalInfo = Sasucursal::find($sucursalId);
-
             return response()->json([
                 'success' => true,
                 'fecha' => $fecha,
                 'fecha_formateada' => Carbon::parse($fecha)->format('d/m/Y'),
-                'sucursal' => $sucursalInfo ? $sucursalInfo->descrip : '',
+                'sucursal' => $sucursal->descrip,
                 'resumen' => $resumen,
-                'data' => $datos
+                'data' => $datos,
+                'debug' => [
+                    'cargos' => $debugCargos,
+                    'descargos' => $debugDescargos,
+                    'compras_count' => $comprasQuery->count(),
+                    'ventas_count' => $ventasQuery->count(),
+                    'inventario_inicial_count' => $inventarioAnterior->count(),
+                    'inventario_final_count' => $inventarioActual->count()
+                ]
             ]);
 
         } catch (\Exception $e) {
             \Log::error('Error en getSeguimientoDiarioData: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener datos: ' . $e->getMessage()
@@ -1028,6 +1124,42 @@ class InventarioHistoricoController extends Controller
             // Detalle de movimientos
             $detalle = [];
 
+            // Cargos del día (TipoOpI = 'O')
+            $cargos = Saitemopi::where('fk_sucursal', $sucursalId)
+                ->whereDate('FechaE', $fecha)
+                ->where('CodItem', $codprod)
+                ->where('TipoOpI', 'O')
+                ->get();
+
+            foreach ($cargos as $cargo) {
+                $detalle[] = [
+                    'tipo' => 'CARGO',
+                    'fecha' => $cargo->FechaE,
+                    'cantidad' => $cargo->Cantidad,
+                    'referencia' => $cargo->NumeroD ?? 'N/A',
+                    'usuario' => 'N/A',
+                    'observacion' => $cargo->Descrip1 ?? ''
+                ];
+            }
+
+            // Descargos del día (TipoOpI = 'P')
+            $descargos = Saitemopi::where('fk_sucursal', $sucursalId)
+                ->whereDate('FechaE', $fecha)
+                ->where('CodItem', $codprod)
+                ->where('TipoOpI', 'P')
+                ->get();
+
+            foreach ($descargos as $descargo) {
+                $detalle[] = [
+                    'tipo' => 'DESCARGO',
+                    'fecha' => $descargo->FechaE,
+                    'cantidad' => $descargo->Cantidad,
+                    'referencia' => $descargo->NumeroD ?? 'N/A',
+                    'usuario' => 'N/A',
+                    'observacion' => $descargo->Descrip1 ?? ''
+                ];
+            }
+
             // Compras del día
             $compras = Saitemcom::where('fk_sucursal', $sucursalId)
                 ->whereDate('fechae', $fecha)
@@ -1063,44 +1195,6 @@ class InventarioHistoricoController extends Controller
                     'referencia' => $venta->factura->numerod ?? 'N/A',
                     'usuario' => $venta->factura->codusua ?? 'N/A',
                     'observacion' => $venta->factura->notas1 ?? ''
-                ];
-            }
-
-            // Cargos del día (tipoopi = 'O')
-            $cargos = Saitemopi::where('fk_sucursal', $sucursalId)
-                ->whereDate('fechae', $fecha)
-                ->where('coditem', $codprod)
-                ->where('tipoopi', 'O')
-                ->with(['opei'])
-                ->get();
-
-            foreach ($cargos as $cargo) {
-                $detalle[] = [
-                    'tipo' => 'CARGO',
-                    'fecha' => $cargo->fechae,
-                    'cantidad' => $cargo->cantidad,
-                    'referencia' => $cargo->opei->numerod ?? 'N/A',
-                    'usuario' => $cargo->opei->codusua ?? 'N/A',
-                    'observacion' => $cargo->opei->notas1 ?? ''
-                ];
-            }
-
-            // Descargos del día (tipoopi = 'P')
-            $descargos = Saitemopi::where('fk_sucursal', $sucursalId)
-                ->whereDate('fechae', $fecha)
-                ->where('coditem', $codprod)
-                ->where('tipoopi', 'P')
-                ->with(['opei'])
-                ->get();
-
-            foreach ($descargos as $descargo) {
-                $detalle[] = [
-                    'tipo' => 'DESCARGO',
-                    'fecha' => $descargo->fechae,
-                    'cantidad' => $descargo->cantidad,
-                    'referencia' => $descargo->opei->numerod ?? 'N/A',
-                    'usuario' => $descargo->opei->codusua ?? 'N/A',
-                    'observacion' => $descargo->opei->notas1 ?? ''
                 ];
             }
 

@@ -4,28 +4,24 @@
 @section('css')
     <style>
         .summary-card {
-            background: linear-gradient(135deg, #75a373 0%, #75a373 100%);
+            background: linear-gradient(135deg, #75a373 0%, #5a8a58 100%);
             color: white;
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 15px;
             transition: transform 0.2s ease;
         }
-
         .summary-card:hover {
             transform: translateY(-3px);
         }
-
         .summary-number {
             font-size: 28px;
             font-weight: bold;
         }
-
         .summary-label {
             font-size: 12px;
             opacity: 0.9;
         }
-
         .filtros-container {
             display: flex;
             gap: 15px;
@@ -36,17 +32,14 @@
             border-radius: 8px;
             align-items: flex-end;
         }
-
         .filtros-container .form-label {
             font-weight: 600;
             font-size: 0.9rem;
             margin-bottom: 4px;
         }
-
         .tabla-seguimiento {
             font-size: 13px;
         }
-
         .tabla-seguimiento thead th {
             background: #f8f9fa;
             padding: 10px 8px;
@@ -59,21 +52,17 @@
             top: 0;
             z-index: 10;
         }
-
         .tabla-seguimiento tbody td {
             padding: 8px;
             vertical-align: middle;
             border-bottom: 1px solid #e9ecef;
         }
-
         .tabla-seguimiento tbody tr:hover {
             background-color: rgba(117, 163, 115, 0.05);
         }
-
         .tabla-seguimiento tbody tr.table-danger:hover {
             background-color: #f8d7da !important;
         }
-
         .merma-badge {
             font-weight: bold;
             padding: 3px 10px;
@@ -83,41 +72,27 @@
             min-width: 60px;
             text-align: center;
         }
-
         .merma-alta {
             background: #dc3545;
             color: white;
         }
-
         .merma-media {
             background: #ffc107;
             color: #000;
         }
-
         .merma-baja {
             background: #75a373;
             color: white;
         }
-
         .merma-positiva {
             background: #28a745;
             color: white;
         }
-
         .scroll-horizontal {
             overflow-x: auto;
             max-height: 600px;
             overflow-y: auto;
         }
-
-        .card-merma {
-            border-left: 4px solid #dc3545;
-        }
-
-        .card-merma-positiva {
-            border-left: 4px solid #28a745;
-        }
-
         .resumen-general {
             background: linear-gradient(135deg, #75a373 0%, #5a8a58 100%);
             color: white;
@@ -125,22 +100,14 @@
             padding: 20px;
             margin-bottom: 20px;
         }
-
         .resumen-general .stat-number {
             font-size: 28px;
             font-weight: bold;
         }
-
         .resumen-general .stat-label {
             font-size: 13px;
             opacity: 0.9;
         }
-
-        .btn-capture {
-            padding: 4px 8px;
-            font-size: 12px;
-        }
-
         .screenshot-notification {
             position: fixed !important;
             top: 80px !important;
@@ -148,12 +115,10 @@
             z-index: 99999 !important;
             animation: slideInRight 0.3s ease;
         }
-
         @keyframes slideInRight {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
-
         .badge-productos {
             font-size: 10px;
             padding: 2px 6px;
@@ -161,43 +126,49 @@
             background: rgba(255,255,255,0.2);
             color: white;
         }
-
         .detalle-modal {
             max-height: 500px;
             overflow-y: auto;
         }
-
         .detalle-modal .list-group-item {
             border-left: 3px solid transparent;
         }
-
-        .detalle-modal .list-group-item.tipo-compra {
-            border-left-color: #28a745;
-        }
-
-        .detalle-modal .list-group-item.tipo-venta {
-            border-left-color: #dc3545;
-        }
-
         .detalle-modal .list-group-item.tipo-cargo {
             border-left-color: #007bff;
         }
-
         .detalle-modal .list-group-item.tipo-descargo {
             border-left-color: #ffc107;
         }
-
+        .detalle-modal .list-group-item.tipo-compra {
+            border-left-color: #28a745;
+        }
+        .detalle-modal .list-group-item.tipo-venta {
+            border-left-color: #dc3545;
+        }
         .detalle-modal .list-group-item.tipo-devolucion-compra {
             border-left-color: #fd7e14;
         }
-
         .detalle-modal .list-group-item.tipo-devolucion-venta {
             border-left-color: #20c997;
         }
-
         .badge-movimiento {
             font-size: 10px;
             padding: 3px 8px;
+        }
+        .debug-container {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .debug-container pre {
+            font-size: 11px;
+            max-height: 200px;
+            overflow: auto;
+            background: #fff;
+            padding: 10px;
+            border-radius: 4px;
         }
     </style>
 @endsection
@@ -220,7 +191,7 @@
                         </div>
                         <div>
                             <label class="form-label mb-1">📅 Fecha</label>
-                            <input type="date" id="fechaSeguimiento" class="form-control form-control-sm" style="width: 180px;">
+                            <input type="date" id="fechaSeguimiento" class="form-control form-control-sm" style="width: 180px;" value="{{ now()->format('Y-m-d') }}">
                         </div>
                         <div>
                             <button class="btn btn-sm btn-primary" onclick="cargarSeguimiento()">
@@ -231,6 +202,9 @@
                             </button>
                             <button class="btn btn-sm btn-outline-primary" onclick="capturarSeguimiento()">
                                 <i class="bi bi-camera me-1"></i> Capturar
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="toggleDebug()">
+                                <i class="bi bi-bug me-1"></i> Depurar
                             </button>
                         </div>
                     </div>
@@ -279,13 +253,17 @@
 
     <script>
         let datosSeguimiento = null;
-        let fechaActual = new Date().toISOString().split('T')[0];
+        let debugVisible = false;
 
         $(document).ready(function() {
-            $('#fechaSeguimiento').val(fechaActual);
+            // Cargar automáticamente si hay una sucursal seleccionada por defecto
+            let sucursalSelect = $('#sucursalSelect');
+            if (sucursalSelect.val() != 0) {
+                cargarSeguimiento();
+            }
 
             // Evento cambio de sucursal
-            $('#sucursalSelect').on('change', function() {
+            sucursalSelect.on('change', function() {
                 if ($(this).val() != 0) {
                     cargarSeguimiento();
                 } else {
@@ -309,7 +287,7 @@
             }
 
             if (!fecha) {
-                fecha = fechaActual;
+                fecha = new Date().toISOString().split('T')[0];
                 $('#fechaSeguimiento').val(fecha);
             }
 
@@ -357,21 +335,65 @@
                     html += `
                 <p class="mb-0">
                     Última fecha trabajada: <strong>${data.resumen.ultima_fecha_trabajada}</strong>
-                    ${data.resumen.dias_sin_sincronizar > 1 ? `(hace ${data.resumen.dias_sincronizar} días)` : ''}
+                    ${data.resumen.dias_sin_sincronizar > 1 ? `(hace ${data.resumen.dias_sin_sincronizar} días)` : ''}
                 </p>
             `;
                 }
 
-                html += `
-                <p class="text-muted mt-2 small">Seleccione otra fecha o verifique que la sucursal haya sincronizado</p>
-            </div>
-        `;
+                // Mostrar información de depuración si existe
+                if (data.debug) {
+                    html += `
+                <div class="mt-3">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="toggleDebug()">
+                        <i class="bi bi-bug me-1"></i> Ver información de depuración
+                    </button>
+                    <div id="debugContent" style="display: none; margin-top: 10px; text-align: left;">
+                        <div class="debug-container">
+                            <h6>Información de depuración:</h6>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <span class="badge bg-primary">Cargos: ${data.debug.cargos?.count || 0}</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <span class="badge bg-secondary">Descargos: ${data.debug.descargos?.count || 0}</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <span class="badge bg-success">Compras: ${data.debug.compras_count || 0}</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <span class="badge bg-danger">Ventas: ${data.debug.ventas_count || 0}</span>
+                                </div>
+                            </div>
+                            ${data.debug.cargos?.sample ? `
+                                <hr>
+                                <h6>Muestra de Cargos:</h6>
+                                <pre>${JSON.stringify(data.debug.cargos.sample, null, 2)}</pre>
+                            ` : ''}
+                            ${data.debug.descargos?.sample ? `
+                                <h6>Muestra de Descargos:</h6>
+                                <pre>${JSON.stringify(data.debug.descargos.sample, null, 2)}</pre>
+                            ` : ''}
+                            ${data.resumen?.debug ? `
+                                <hr>
+                                <h6>Datos sin filtro de sucursal:</h6>
+                                <ul>
+                                    <li>Cargos: ${data.resumen.debug.cargos_sin_filtro || 0}</li>
+                                    <li>Descargos: ${data.resumen.debug.descargos_sin_filtro || 0}</li>
+                                    <li>Compras: ${data.resumen.debug.compras_sin_filtro || 0}</li>
+                                    <li>Ventas: ${data.resumen.debug.ventas_sin_filtro || 0}</li>
+                                </ul>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+                }
 
+                html += `</div>`;
                 $('#seguimientoContent').html(html);
                 return;
             }
 
-            // ========== RESUMEN GENERAL ==========
             let fechaAnteriorMostrar = data.resumen.fecha_anterior_trabajada || 'Sin dato anterior';
             let fechaActualMostrar = data.resumen.fecha_actual || data.fecha_formateada;
 
@@ -402,7 +424,7 @@
                     <div class="stat-label">% Merma</div>
                 </div>
                 <div class="col-md-2">
-                    <div class="stat-number">${numberFormat(data.resumen.total_compras + data.resumen.total_cargos, 0)}</div>
+                    <div class="stat-number">${numberFormat(data.resumen.total_cargos + data.resumen.total_compras, 0)}</div>
                     <div class="stat-label">Entradas</div>
                 </div>
             </div>
@@ -412,17 +434,17 @@
                         <i class="bi bi-info-circle me-1"></i>
                         ${data.sucursal} - Período: ${fechaAnteriorMostrar} → ${fechaActualMostrar}
                         ${data.resumen.dias_sin_sincronizar > 1 ? `<span class="badge bg-warning text-dark ms-2">⚠️ ${data.resumen.dias_sin_sincronizar} días sin sincronizar</span>` : ''}
-                        <span class="badge bg-light text-dark ms-2">Compras: ${numberFormat(data.resumen.total_compras, 0)}</span>
-                        <span class="badge bg-light text-dark ms-1">Ventas: ${numberFormat(data.resumen.total_ventas, 0)}</span>
-                        <span class="badge bg-light text-dark ms-1">Cargos: ${numberFormat(data.resumen.total_cargos, 0)}</span>
+                        <span class="badge bg-light text-dark ms-2">Cargos: ${numberFormat(data.resumen.total_cargos, 0)}</span>
                         <span class="badge bg-light text-dark ms-1">Descargos: ${numberFormat(data.resumen.total_descargos, 0)}</span>
+                        <span class="badge bg-light text-dark ms-1">Compras: ${numberFormat(data.resumen.total_compras, 0)}</span>
+                        <span class="badge bg-light text-dark ms-1">Ventas: ${numberFormat(data.resumen.total_ventas, 0)}</span>
                     </small>
                 </div>
             </div>
         </div>
     `;
 
-            // ========== ADVERTENCIA POR DÍAS SIN SINCRONIZAR ==========
+            // Advertencia por días sin sincronizar
             if (data.resumen.dias_sin_sincronizar > 1) {
                 html += `
             <div class="alert alert-warning mb-3">
@@ -435,7 +457,7 @@
         `;
             }
 
-            // ========== TABLA DE SEGUIMIENTO ==========
+            // Tabla de seguimiento
             html += `
         <div class="scroll-horizontal">
             <table class="table table-bordered table-sm tabla-seguimiento">
@@ -444,21 +466,13 @@
                         <th style="min-width: 80px;">Código</th>
                         <th style="min-width: 180px;">Producto</th>
                         <th style="min-width: 120px;">Categoría</th>
-                        <th style="min-width: 70px; text-align: center;" title="Inventario de la fecha anterior trabajada (${fechaAnteriorMostrar})">
-                            Inv. Inicial
-                        </th>
-                        <th style="min-width: 70px; text-align: center;">Compras</th>
-                        <th style="min-width: 70px; text-align: center;">Dev. Comp</th>
-                        <th style="min-width: 70px; text-align: center;">Ventas</th>
-                        <th style="min-width: 70px; text-align: center;">Dev. Vta</th>
-                        <th style="min-width: 70px; text-align: center;">Cargos</th>
-                        <th style="min-width: 70px; text-align: center;">Descargos</th>
-                        <th style="min-width: 70px; text-align: center;" title="Inventario que debería haber según los movimientos">
-                            Debe Haber
-                        </th>
-                        <th style="min-width: 70px; text-align: center;" title="Inventario real de la fecha actual (${fechaActualMostrar})">
-                            Inv. Final
-                        </th>
+                        <th style="min-width: 70px; text-align: center;" title="Inventario de la fecha anterior trabajada">Inv. Inicial</th>
+                        <th style="min-width: 70px; text-align: center;" class="text-primary">Cargos (+)</th>
+                        <th style="min-width: 70px; text-align: center;" class="text-warning">Descargos (-)</th>
+                        <th style="min-width: 70px; text-align: center;" class="text-success">Compras (+)</th>
+                        <th style="min-width: 70px; text-align: center;" class="text-danger">Ventas (-)</th>
+                        <th style="min-width: 70px; text-align: center;" title="Inventario que debería haber según los movimientos">Debe Haber</th>
+                        <th style="min-width: 70px; text-align: center;" title="Inventario real de la fecha actual">Inv. Final</th>
                         <th style="min-width: 80px; text-align: center;">Merma</th>
                         <th style="min-width: 70px; text-align: center;">% Merma</th>
                         <th style="min-width: 50px; text-align: center;">Acción</th>
@@ -467,16 +481,13 @@
                 <tbody>
     `;
 
-            // ========== FILAS DE DATOS ==========
             data.data.forEach(item => {
-                // Determinar clase y texto para la merma
                 let mermaClass = '';
                 let mermaTexto = '';
                 let mermaColor = '';
                 let absMerma = Math.abs(item.merma);
 
                 if (item.merma > 0) {
-                    // Merma positiva (pérdida)
                     if (absMerma > 100) {
                         mermaClass = 'merma-alta';
                         mermaColor = '#dc3545';
@@ -489,24 +500,20 @@
                     }
                     mermaTexto = `-${numberFormat(absMerma, 0)}`;
                 } else if (item.merma < 0) {
-                    // Merma negativa (sobrante)
                     mermaClass = 'merma-positiva';
                     mermaColor = '#28a745';
                     mermaTexto = `+${numberFormat(absMerma, 0)}`;
                 } else {
-                    // Sin merma
                     mermaClass = 'merma-baja';
                     mermaColor = '#6c757d';
                     mermaTexto = '0';
                 }
 
-                // Si la merma es alta, resaltar la fila
                 let rowClass = item.merma > 100 ? 'table-danger' : '';
                 if (item.merma > 20 && item.merma <= 100) {
                     rowClass = 'table-warning';
                 }
 
-                // Porcentaje de merma con color
                 let mermaPorcClass = 'merma-baja';
                 let mermaPorcColor = '#6c757d';
                 let absPorc = Math.abs(item.merma_porcentaje);
@@ -533,12 +540,10 @@
                 <td>${item.descrip}</td>
                 <td><small>${item.categoria}</small></td>
                 <td class="text-center fw-bold">${numberFormat(item.inventario_inicial, 0)}</td>
+                <td class="text-center text-primary">${item.cargos > 0 ? '+' + numberFormat(item.cargos, 0) : '-'}</td>
+                <td class="text-center text-warning">${item.descargos > 0 ? '-' + numberFormat(item.descargos, 0) : '-'}</td>
                 <td class="text-center text-success">${item.compras > 0 ? '+' + numberFormat(item.compras, 0) : '-'}</td>
-                <td class="text-center text-danger">${item.devoluciones_compras > 0 ? '-' + numberFormat(item.devoluciones_compras, 0) : '-'}</td>
                 <td class="text-center text-danger">${item.ventas > 0 ? '-' + numberFormat(item.ventas, 0) : '-'}</td>
-                <td class="text-center text-success">${item.devoluciones_ventas > 0 ? '+' + numberFormat(item.devoluciones_ventas, 0) : '-'}</td>
-                <td class="text-center text-success">${item.cargos > 0 ? '+' + numberFormat(item.cargos, 0) : '-'}</td>
-                <td class="text-center text-danger">${item.descargos > 0 ? '-' + numberFormat(item.descargos, 0) : '-'}</td>
                 <td class="text-center fw-bold">${numberFormat(item.deberia_haber, 0)}</td>
                 <td class="text-center fw-bold">${numberFormat(item.inventario_final, 0)}</td>
                 <td class="text-center">
@@ -560,15 +565,13 @@
         `;
             });
 
-            // ========== FILA DE TOTALES ==========
+            // Fila de totales
             if (data.data.length > 0) {
                 let totalInicial = data.data.reduce((sum, item) => sum + item.inventario_inicial, 0);
-                let totalCompras = data.data.reduce((sum, item) => sum + item.compras, 0);
-                let totalDevCompras = data.data.reduce((sum, item) => sum + item.devoluciones_compras, 0);
-                let totalVentas = data.data.reduce((sum, item) => sum + item.ventas, 0);
-                let totalDevVentas = data.data.reduce((sum, item) => sum + item.devoluciones_ventas, 0);
                 let totalCargos = data.data.reduce((sum, item) => sum + item.cargos, 0);
                 let totalDescargos = data.data.reduce((sum, item) => sum + item.descargos, 0);
+                let totalCompras = data.data.reduce((sum, item) => sum + item.compras, 0);
+                let totalVentas = data.data.reduce((sum, item) => sum + item.ventas, 0);
                 let totalDebeHaber = data.data.reduce((sum, item) => sum + item.deberia_haber, 0);
                 let totalFinal = data.data.reduce((sum, item) => sum + item.inventario_final, 0);
                 let totalMerma = data.data.reduce((sum, item) => sum + item.merma, 0);
@@ -581,12 +584,10 @@
             <tr class="table-primary fw-bold">
                 <td colspan="3" class="text-center">TOTALES</td>
                 <td class="text-center">${numberFormat(totalInicial, 0)}</td>
+                <td class="text-center text-primary">${totalCargos > 0 ? '+' + numberFormat(totalCargos, 0) : '-'}</td>
+                <td class="text-center text-warning">${totalDescargos > 0 ? '-' + numberFormat(totalDescargos, 0) : '-'}</td>
                 <td class="text-center text-success">${totalCompras > 0 ? '+' + numberFormat(totalCompras, 0) : '-'}</td>
-                <td class="text-center text-danger">${totalDevCompras > 0 ? '-' + numberFormat(totalDevCompras, 0) : '-'}</td>
                 <td class="text-center text-danger">${totalVentas > 0 ? '-' + numberFormat(totalVentas, 0) : '-'}</td>
-                <td class="text-center text-success">${totalDevVentas > 0 ? '+' + numberFormat(totalDevVentas, 0) : '-'}</td>
-                <td class="text-center text-success">${totalCargos > 0 ? '+' + numberFormat(totalCargos, 0) : '-'}</td>
-                <td class="text-center text-danger">${totalDescargos > 0 ? '-' + numberFormat(totalDescargos, 0) : '-'}</td>
                 <td class="text-center">${numberFormat(totalDebeHaber, 0)}</td>
                 <td class="text-center">${numberFormat(totalFinal, 0)}</td>
                 <td class="text-center">
@@ -606,7 +607,52 @@
         </div>
     `;
 
-            // ========== PIE DE PÁGINA CON INFORMACIÓN ADICIONAL ==========
+            // Información de depuración
+            if (data.debug) {
+                html += `
+            <div class="mt-3">
+                <button class="btn btn-sm btn-outline-secondary" onclick="toggleDebug()">
+                    <i class="bi bi-bug me-1"></i> Mostrar/Ocultar Depuración
+                </button>
+                <div id="debugContent" style="display: none; margin-top: 10px;">
+                    <div class="debug-container">
+                        <h6>Movimientos encontrados:</h6>
+                        <div class="row">
+                            <div class="col-md-2">
+                                <span class="badge bg-primary">Cargos: ${data.debug.cargos?.count || 0}</span>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="badge bg-secondary">Descargos: ${data.debug.descargos?.count || 0}</span>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="badge bg-success">Compras: ${data.debug.compras_count || 0}</span>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="badge bg-danger">Ventas: ${data.debug.ventas_count || 0}</span>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="badge bg-info">Inv. Inicial: ${data.debug.inventario_inicial_count || 0}</span>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="badge bg-dark">Inv. Final: ${data.debug.inventario_final_count || 0}</span>
+                            </div>
+                        </div>
+                        ${data.debug.cargos?.sample ? `
+                            <hr>
+                            <h6>Muestra de Cargos:</h6>
+                            <pre>${JSON.stringify(data.debug.cargos.sample, null, 2)}</pre>
+                        ` : ''}
+                        ${data.debug.descargos?.sample ? `
+                            <h6>Muestra de Descargos:</h6>
+                            <pre>${JSON.stringify(data.debug.descargos.sample, null, 2)}</pre>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+            }
+
+            // Pie de página
             html += `
         <div class="row mt-3">
             <div class="col-12">
@@ -632,11 +678,13 @@
         </div>
     `;
 
-            // ========== INSERTAR HTML EN EL CONTENEDOR ==========
             $('#seguimientoContent').html(html);
-
-            // ========== AGREGAR TOOLTIPS ==========
             $('[title]').tooltip({ placement: 'top' });
+        }
+
+        function toggleDebug() {
+            $('#debugContent').toggle();
+            debugVisible = !debugVisible;
         }
 
         function mostrarError(mensaje) {
@@ -724,20 +772,20 @@
                     let icon = '';
 
                     switch(item.tipo) {
-                        case 'COMPRA':
-                            badgeClass = 'bg-success';
-                            icon = 'bi-arrow-down-circle';
-                            break;
-                        case 'VENTA':
-                            badgeClass = 'bg-danger';
-                            icon = 'bi-arrow-up-circle';
-                            break;
                         case 'CARGO':
                             badgeClass = 'bg-primary';
                             icon = 'bi-arrow-down-circle';
                             break;
                         case 'DESCARGO':
                             badgeClass = 'bg-warning';
+                            icon = 'bi-arrow-up-circle';
+                            break;
+                        case 'COMPRA':
+                            badgeClass = 'bg-success';
+                            icon = 'bi-arrow-down-circle';
+                            break;
+                        case 'VENTA':
+                            badgeClass = 'bg-danger';
                             icon = 'bi-arrow-up-circle';
                             break;
                         case 'DEVOLUCIÓN COMPRA':
@@ -796,11 +844,9 @@
             let num = typeof number === 'number' ? number : parseFloat(number);
             if (isNaN(num)) return '0';
 
-            // Redondear a los decimales especificados
             let factor = Math.pow(10, decimals);
             num = Math.round(num * factor) / factor;
 
-            // Formatear con separadores de miles y decimales
             let parts = num.toFixed(decimals).split('.');
             let integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
             let decimalPart = parts[1] || '';
@@ -839,8 +885,8 @@
 
             // Cabecera
             data.push([
-                'Código', 'Producto', 'Categoría', 'Inv. Inicial', 'Compras', 'Dev. Compra',
-                'Ventas', 'Dev. Venta', 'Cargos', 'Descargos', 'Debe Haber', 'Inv. Final', 'Merma', '% Merma'
+                'Código', 'Producto', 'Categoría', 'Inv. Inicial', 'Cargos', 'Descargos',
+                'Compras', 'Ventas', 'Debe Haber', 'Inv. Final', 'Merma', '% Merma'
             ]);
 
             // Datos
@@ -850,12 +896,10 @@
                     item.descrip,
                     item.categoria,
                     item.inventario_inicial,
-                    item.compras,
-                    item.devoluciones_compras,
-                    item.ventas,
-                    item.devoluciones_ventas,
                     item.cargos,
                     item.descargos,
+                    item.compras,
+                    item.ventas,
                     item.deberia_haber,
                     item.inventario_final,
                     item.merma,
@@ -863,12 +907,10 @@
                 ]);
             });
 
-            // Crear y descargar Excel
             let ws = XLSX.utils.aoa_to_sheet(data);
             let wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Seguimiento');
             XLSX.writeFile(wb, `seguimiento_inventario_${datosSeguimiento.fecha}.xlsx`);
-
             mostrarNotificacion('✅ Seguimiento exportado a Excel', 'success');
         }
 
