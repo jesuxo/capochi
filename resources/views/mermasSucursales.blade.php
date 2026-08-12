@@ -156,23 +156,19 @@
                             <table class="report-table" id="tablaMermas">
                                 <thead>
                                 <tr>
-                                    <th rowspan="2" style="min-width: 80px;">Código</th>
-                                    <th rowspan="2" style="min-width: 200px;">Producto</th>
-                                    <th rowspan="2" style="min-width: 150px;">Categoría</th>
+                                    <th  style="min-width: 80px;">Código</th>
+                                    <th  style="min-width: 200px;">Producto</th>
+                                    <th  style="min-width: 150px;">Categoría</th>
                                     @foreach($sucursales as $idSuc => $nombreSuc)
                                         <th class="tdlineff titulo" style="min-width: 80px;">
                                             {{ $nombreSuc }}
                                         </th>
                                     @endforeach
                                     @if(count($sucursales) > 1)
-                                        <th rowspan="2" style="min-width: 80px;">Total</th>
+                                        <th  style="min-width: 80px;">Total</th>
                                     @endif
                                 </tr>
-                                <tr>
-                                    @foreach($sucursales as $idSuc => $nombreSuc)
-                                        <th style="font-size: 10px; background-color: #4a6b48;">Cantidad</th>
-                                    @endforeach
-                                </tr>
+
                                 </thead>
                                 <tbody>
                                 @php
