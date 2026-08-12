@@ -396,6 +396,154 @@ class SaprodController extends Controller
         ));
     }
 
+    /**
+     * Reporte de mermas por categoría y sucursal
+     */
+    public function mermassucursales(Request $request)
+    {
+        $comercialid = session('comercialid') ?? 1;
+
+        // Obtener sucursales del comercial
+        $allsucursales = Sasucursal::where('fk_comercial', $comercialid)
+            ->orderBy('descrip', 'asc')
+            ->get();
+
+        // Obtener categorías (instancias nivel 1)
+        $instancias = Sainsta::where('comercial', $comercialid)
+            ->where('tipoins', 0)
+            ->where('nivel', 1)
+            ->orderBy('descrip', 'asc')
+            ->get();
+
+        // Parámetros de filtro
+        $fksucursal = $request->input('fksucursal');
+        $codinst = $request->input('codinst');
+        $fechasreport = $request->input('fechasreport');
+        $fechashoy = Carbon::now()->format('d/m/Y');
+
+        if (!$fechasreport) {
+            $fechasreport = $fechashoy;
+        }
+
+        // Procesar fechas
+        $fechasaux = str_replace(' ', '', $fechasreport);
+        $fec1 = $fec2 = '';
+
+        if (strpos($fechasaux, "to")) {
+            list($fec1, $fec2) = explode("to", $fechasaux);
+        } else {
+            list($d1, $m1, $y1) = explode("/", $fechasreport);
+            $fec1 = "$d1/$m1/$y1";
+            $fec2 = $fec1;
+            $fechasreport = "$fec1 to $fec2";
+        }
+
+        list($d1, $m1, $y1) = explode("/", $fec1);
+        list($d2, $m2, $y2) = explode("/", $fec2);
+
+        $fecha1 = $fec1;
+        $fecha2 = $fec2;
+
+        $fec1Sql = "$y1-$m1-$d1";
+        $fec2Sql = "$y2-$m2-$d2";
+
+        // Construir consulta para mermas
+        // Solo operaciones donde saoper.merma = 1
+        $query = DB::table('saitemopi as b')
+            ->select([
+                'a.codprod',
+                'a.descrip as producto',
+                'a.exdecimal',
+                'c.descrip as sucursal',
+                'c.id as fk_sucursal',
+                'e.descrip as instancia',
+                'e.codalte',
+                'f.descrip as operacion',
+                'f.codoper',
+                DB::raw('SUM(b.Cantidad * d.Signo) as cantidad_merma')
+            ])
+            ->join('saprod as a', 'a.codprod', '=', 'b.CodItem')
+            ->join('sasucursal as c', 'c.id', '=', 'b.fk_sucursal')
+            ->join('saopei as d', function($join) {
+                $join->on('d.NumeroD', '=', 'b.NumeroD')
+                    ->on('d.TipoOpI', '=', 'b.TipoOpI');
+            })
+            ->join('sainsta as e', 'e.codinst', '=', 'a.codinst')
+            ->join('saoper as f', 'f.codoper', '=', 'd.CodOper')
+            ->where('a.comercial', $comercialid)
+            ->where('c.fk_comercial', $comercialid)
+            ->where('e.comercial', $comercialid)
+            ->where('f.comercial', $comercialid)
+            ->where('f.merma', 1) // Solo operaciones marcadas como merma
+            ->whereIn('b.tipoopi', ['P']) // Solo descargos
+            ->whereBetween('b.FechaE', [$fec1Sql . ' 00:00:00.000', $fec2Sql . ' 23:59:59.999'])
+            ->whereBetween('d.FechaT', [$fec1Sql . ' 00:00:00.000', $fec2Sql . ' 23:59:59.999']);
+
+        // Aplicar filtros
+        if ($fksucursal && $fksucursal > 0) {
+            $query->where('c.id', $fksucursal);
+        }
+
+        if ($codinst) {
+            $query->where('a.codinst', $codinst);
+        }
+
+        $listado = $query->groupBy([
+            'a.codprod', 'a.descrip', 'a.exdecimal',
+            'c.descrip', 'c.id',
+            'e.descrip', 'e.codalte',
+            'f.descrip', 'f.codoper'
+        ])
+            ->orderBy('e.codalte')
+            ->get();
+
+        // Procesar datos para la vista
+        $sucursales = [];
+        $cantidadprod = [];
+        $itemmermas = [];
+
+        foreach ($listado as $merma) {
+            if (!isset($sucursales[$merma->fk_sucursal])) {
+                $sucursales[$merma->fk_sucursal] = $merma->sucursal;
+            }
+
+            $key = $merma->codprod . $merma->fk_sucursal;
+            if (!isset($cantidadprod[$key])) {
+                $cantidadprod[$key] = 0;
+            }
+            $cantidadprod[$key] += $merma->cantidad_merma;
+
+            $itemmermas[$merma->instancia][$merma->codprod] = [
+                'descrip' => $merma->producto,
+                'exdecimal' => $merma->exdecimal,
+                'codoper' => $merma->codoper,
+                'operacion' => $merma->operacion
+            ];
+        }
+
+        asort($sucursales);
+
+        // Obtener operaciones de merma para el filtro
+        $operacionesMerma = Saoper::where('comercial', $comercialid)
+            ->where('merma', 1)
+            ->orderBy('orden', 'asc')
+            ->get();
+
+        return view('mermasSucursales', compact(
+            'fecha1',
+            'fecha2',
+            'fechasreport',
+            'sucursales',
+            'itemmermas',
+            'cantidadprod',
+            'codinst',
+            'fksucursal',
+            'allsucursales',
+            'instancias',
+            'operacionesMerma'
+        ));
+    }
+
     public function resultadosucursales(Request $request)
     {
         $comercialid = session('comercialid');
@@ -918,86 +1066,6 @@ class SaprodController extends Controller
         return view('operacionesSucursal', compact('sucursal','fechasreport', 'sucursales', 'fk_sucursal', 'fecha1', 'fecha2', 'operaciones', 'itemopei', 'cantidadprod'));
     }
 
-    public function mermassucursales(Request $request)
-    {
-        $comercialid  = session('comercialid') ;
-        if(!$comercialid) {
-            session(['comercialid' => 1]);
-            $comercialid = 1;
-        }
-
-        $fechasreport = $request->fechasreport;
-        $fechashoy =  Carbon::now()->format('d/m/Y');
-        $nofilterdate = 0;
-        if(!$fechasreport) {
-            $nofilterdate = 1;
-            $fechasreport = $fechashoy;
-        }
-
-        $fechasaux = str_replace(' ','',$fechasreport);
-        $fec1 = $fec2 = '';
-
-        if(strpos($fechasaux,"to"))
-            list($fec1, $fec2) = explode("to",$fechasaux);
-        else {
-            if(!$nofilterdate) {
-                list($d1, $m1, $y1) = explode("/", $fechasreport);
-                $fec1 = "$d1/$m1/$y1";
-                $fec2 = $fec1;
-                $fechasreport = "$fec1 to $fec2";
-            }else{
-                list($d1, $m1, $y1) = explode("/", $fechasreport);
-                $fec1 = "$d1/$m1/$y1";
-                $fec2 = "$d1/$m1/$y1";
-                $fechasreport = "$fec1 to $fec2";
-            }
-        }
-
-        list($d1,$m1,$y1) = explode("/",$fec1);
-        list($d2,$m2,$y2) = explode("/",$fec2);
-
-        $fec1 = "$y1-$m1-$d1";
-        $fec2 = "$y2-$m2-$d2";
-
-        $listado = Saitemfac::whereRaw("TipoFac in ('A','B')")
-            ->selectRaw("fk_sucursal, CodItem, SUM(Cantidad*Signo) as salidas")
-            ->with(['sucursal','producto.instancia' => function($q) { $q->orderBy('codalte', 'asc'); }])
-            ->where('esserv',0)
-            ->whereHas('sucursal.comercial', function($q) use ($comercialid) {
-                $q->where('fk_comercial',$comercialid);
-            })
-            ->whereBetween('FechaE', [$fec1.' 00:00:00.00', $fec2.' 23:58:22.00'])
-            ->groupBy(['fk_sucursal','coditem'])->orderBy('fk_sucursal')->get();
-
-        $sucursales   = [];
-        $cantidadprod = [];
-        $itemventas   = [];
-
-        if(isset($listado))
-            foreach($listado as $prodsuc){
-
-                if(!isset($prodsuc->producto->instancia))
-                        dd($prodsuc);
-
-                if($prodsuc->producto->instancia->merma == 1){
-                    if(!isset($sucursales[$prodsuc->sucursal->id])){
-                        $sucursales[$prodsuc->sucursal->id] = $prodsuc->sucursal->descrip;
-                    }
-
-                    if(!isset($cantidadprod[$prodsuc->producto->instancia->codinst.$prodsuc->sucursal->id])){
-                        $cantidadprod[$prodsuc->producto->instancia->codinst.$prodsuc->sucursal->id]=0;
-                    }
-                    $cantidadprod[$prodsuc->producto->instancia->codinst.$prodsuc->sucursal->id] += $prodsuc->salidas;
-
-                    $itemventas[$prodsuc->producto->instancia->descrip] = $prodsuc->producto->instancia->codinst;
-                }
-
-            }
-
-        asort($sucursales);
-
-        return view('reporteMermasSucursales', compact('fechasreport', 'sucursales',  'itemventas', 'cantidadprod'));
-    }
 
     public function busquedaHomeProd(Request $request)
     {

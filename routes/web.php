@@ -194,9 +194,8 @@ Route::middleware(['auth'])->group(function () {
         Route::match(['get','post'],'ventas/resultado', 'resultadosucursales');
         Route::match(['get','post'],'operaciones/productos/sucursales', 'operacionessucursales');
         Route::match(['get','post'],'operaciones/detallado/sucursal', 'operacionessucursal');
-        Route::match(['get','post'],'mermas/sucursales', 'mermassucursales');
-
         Route::post('saprod/viewprodinstsanciascodalte', 'viewprodinstsanciascodalte');
+        Route::match(['get','post'],'mermas/sucursales', 'mermassucursales')->name('mermas.sucursales');
     });
 
     Route::resource('depositos', \App\Http\Controllers\SadepoController::class);

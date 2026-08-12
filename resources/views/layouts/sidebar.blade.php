@@ -74,7 +74,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="/mermas/sucursales" class="nav-link">
+                                <a  href="{{ route('mermas.sucursales') }}" class="nav-link">
                                     <i class="bi bi-trash3 me-2"></i> Mermas por sucursal
                                 </a>
                             </li>
