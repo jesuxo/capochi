@@ -61,7 +61,141 @@ class InventarioHistoricoController extends Controller
             'fechaHoy'
         ));
     }
-// En InventarioHistoricoController.php, agrega este método:
+
+    public function calendarioSincronizacion()
+    {
+        $comercialid = session('comercialid') ?? 1;
+
+        // Obtener sucursales del comercial actual
+        $sucursales = Sasucursal::where('fk_comercial', $comercialid)
+            ->where('sincronizacion', 1)
+            ->orderBy('descrip')
+            ->get();
+
+        return view('inventario-calendario', compact('sucursales'));
+    }
+
+    /**
+     * Obtener datos del calendario de sincronizaciones para un período
+     */
+    public function getCalendarioSincronizacionData(Request $request)
+    {
+        try {
+            $comercialid = session('comercialid') ?? 1;
+            $mes = $request->input('mes', Carbon::now()->month);
+            $anio = $request->input('anio', Carbon::now()->year);
+            $sucursalId = $request->input('sucursal_id', 0);
+
+            // Fechas del mes
+            $fechaInicio = Carbon::create($anio, $mes, 1)->startOfDay();
+            $fechaFin = Carbon::create($anio, $mes, 1)->endOfMonth()->endOfDay();
+
+            // Obtener todas las fechas del mes (días)
+            $diasDelMes = [];
+            $fecha = clone $fechaInicio;
+            while ($fecha <= $fechaFin) {
+                $diasDelMes[] = $fecha->format('Y-m-d');
+                $fecha->addDay();
+            }
+
+            // Obtener sucursales
+            $sucursales = Sasucursal::where('fk_comercial', $comercialid)
+                ->where('sincronizacion', 1);
+
+            if ($sucursalId > 0) {
+                $sucursales->where('id', $sucursalId);
+            }
+
+            $sucursales = $sucursales->orderBy('descrip')->get();
+
+            // Obtener todas las sincronizaciones del período
+            $sincronizaciones = Saeprdday::whereBetween('fecha', [$fechaInicio, $fechaFin])
+                ->whereHas('sucursal', function($q) use ($comercialid) {
+                    $q->where('fk_comercial', $comercialid);
+                })
+                ->select('fksucursal', 'fecha', DB::raw('COUNT(DISTINCT codprod) as total_productos'))
+                ->groupBy('fksucursal', 'fecha')
+                ->get()
+                ->groupBy('fksucursal');
+
+            // Construir matriz de datos
+            $data = [];
+            $diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+            foreach ($sucursales as $sucursal) {
+                $sucursalData = [
+                    'id' => $sucursal->id,
+                    'nombre' => $sucursal->descrip,
+                    'dias' => [],
+                    'totales' => [
+                        'dias_habiles' => 0,
+                        'dias_sincronizados' => 0,
+                        'cumplimiento' => 0
+                    ]
+                ];
+
+                $diasHabiles = 0;
+                $diasSincronizados = 0;
+
+                $syncsPorSucursal = $sincronizaciones->get($sucursal->id, collect())->keyBy('fecha');
+
+                foreach ($diasDelMes as $fechaStr) {
+                    $fechaObj = Carbon::parse($fechaStr);
+                    $diaNumero = $fechaObj->format('d');
+                    $diaSemana = $diasSemana[$fechaObj->dayOfWeek];
+                    $esDiaHabil = $fechaObj->isWeekday(); // Lunes a Viernes
+
+                    // Verificar si hay sincronización
+                    $tieneSync = $syncsPorSucursal->has($fechaStr);
+                    $productosSync = $tieneSync ? $syncsPorSucursal[$fechaStr]->total_productos : 0;
+
+                    // Contabilizar días
+                    if ($esDiaHabil) {
+                        $diasHabiles++;
+                        if ($tieneSync) {
+                            $diasSincronizados++;
+                        }
+                    }
+
+                    $sucursalData['dias'][] = [
+                        'fecha' => $fechaStr,
+                        'dia_numero' => $diaNumero,
+                        'dia_semana' => $diaSemana,
+                        'es_dia_habilitado' => $esDiaHabil,
+                        'tiene_sincronizacion' => $tieneSync,
+                        'productos_sincronizados' => $productosSync
+                    ];
+                }
+
+                // Calcular cumplimiento
+                $cumplimiento = $diasHabiles > 0 ? round(($diasSincronizados / $diasHabiles) * 100, 1) : 0;
+                $sucursalData['totales'] = [
+                    'dias_habiles' => $diasHabiles,
+                    'dias_sincronizados' => $diasSincronizados,
+                    'cumplimiento' => $cumplimiento,
+                    'dias_faltantes' => $diasHabiles - $diasSincronizados
+                ];
+
+                $data[] = $sucursalData;
+            }
+
+            return response()->json([
+                'success' => true,
+                'mes' => $mes,
+                'anio' => $anio,
+                'nombre_mes' => Carbon::create($anio, $mes, 1)->translatedFormat('F'),
+                'dias_del_mes' => $diasDelMes,
+                'sucursales' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error en getCalendarioSincronizacionData: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener datos: ' . $e->getMessage()
+            ]);
+        }
+    }
 
     public function getSincronizacionPorFecha(Request $request)
     {

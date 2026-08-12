@@ -346,6 +346,13 @@
                                 <i class="bi bi-diagram-3 me-1"></i> Inventario por Categoría
                             </button>
                         </li>
+
+                            <li class="nav-item">
+                                <button class="nav-link" id="calendario-tab" data-bs-toggle="tab"
+                                        data-bs-target="#calendario" type="button" role="tab">
+                                    <i class="bi bi-calendar-month me-1"></i> Calendario
+                                </button>
+                            </li>
                     </ul>
 
                     <div class="tab-content">
@@ -615,6 +622,17 @@
                                 </div>
                             </div>
                         </div>
+
+                            <div class="tab-pane fade" id="calendario" role="tabpanel">
+                                <div class="text-center py-4">
+                                    <i class="bi bi-calendar-month fs-1 d-block mb-3 text-primary"></i>
+                                    <h5>📅 Calendario de Sincronizaciones</h5>
+                                    <p>Visualiza el cumplimiento diario de sincronización por sucursal</p>
+                                    <a href="{{ route('inventario.calendario') }}" class="btn btn-primary">
+                                        <i class="bi bi-arrow-right-circle me-2"></i>Ir al Calendario
+                                    </a>
+                                </div>
+                            </div>
 
                         <!-- Modal para ver existencias por categoría (fullscreen) -->
                         <div class="modal fade" id="modalExistenciasCategoria" aria-hidden="true" tabindex="-1">

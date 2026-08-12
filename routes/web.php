@@ -108,6 +108,10 @@ Route::middleware(['auth'])->group(function () {
                 'sucursal' => $sucursal->descrip ?? null
             ]);
         });
+        Route::get('/calendario-sincronizacion', [InventarioHistoricoController::class, 'calendarioSincronizacion'])
+            ->name('inventario.calendario');
+        Route::post('/calendario-sincronizacion/data', [InventarioHistoricoController::class, 'getCalendarioSincronizacionData'])
+            ->name('inventario.calendario.data');
     });
 // }
 
