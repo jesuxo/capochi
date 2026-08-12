@@ -353,6 +353,13 @@
                                     <i class="bi bi-calendar-month me-1"></i> Calendario
                                 </button>
                             </li>
+
+                            <li class="nav-item">
+                                <button class="nav-link" id="seguimiento-tab" data-bs-toggle="tab"
+                                        data-bs-target="#seguimiento" type="button" role="tab">
+                                    <i class="bi bi-arrow-left-right me-1"></i> Seguimiento Diario
+                                </button>
+                            </li>
                     </ul>
 
                     <div class="tab-content">
@@ -630,6 +637,17 @@
                                     <p>Visualiza el cumplimiento diario de sincronización por sucursal</p>
                                     <a href="{{ route('inventario.calendario') }}" class="btn btn-primary">
                                         <i class="bi bi-arrow-right-circle me-2"></i>Ir al Calendario
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="tab-pane fade" id="seguimiento" role="tabpanel">
+                                <div class="text-center py-4">
+                                    <i class="bi bi-arrow-left-right fs-1 d-block mb-3 text-primary"></i>
+                                    <h5>📊 Seguimiento Diario de Inventario</h5>
+                                    <p>Visualiza el inventario inicial, movimientos y mermas por producto</p>
+                                    <a href="{{ route('inventario.seguimiento.diario') }}" class="btn btn-primary">
+                                        <i class="bi bi-arrow-right-circle me-2"></i>Ir al Seguimiento
                                     </a>
                                 </div>
                             </div>

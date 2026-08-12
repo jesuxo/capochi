@@ -4,6 +4,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Saeprdday;
+use App\Models\Saitemcom;
+use App\Models\Saitemfac;
+use App\Models\Saitemopi;
 use App\Models\Sasucursal;
 use App\Models\Saprod;
 use App\Models\Sainsta;
@@ -715,5 +718,389 @@ class InventarioHistoricoController extends Controller
             'fecha_inicio',
             'fecha_fin'
         ));
+    }
+
+    public function seguimientoDiario()
+    {
+        $comercialid = session('comercialid') ?? 1;
+
+        // Obtener sucursales del comercial actual
+        $sucursales = Sasucursal::where('fk_comercial', $comercialid)
+            ->where('sincronizacion', 1)
+            ->orderBy('descrip')
+            ->get();
+
+        return view('inventario-seguimiento', compact('sucursales'));
+    }
+
+    public function getSeguimientoDiarioData(Request $request)
+    {
+        try {
+            $comercialid = session('comercialid') ?? 1;
+            $fecha = $request->input('fecha', Carbon::now()->format('Y-m-d'));
+            $sucursalId = $request->input('sucursal_id', 0);
+
+            // Si no hay sucursal seleccionada, retornar vacío
+            if ($sucursalId == 0) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Seleccione una sucursal',
+                    'data' => []
+                ]);
+            }
+
+            // Obtener la sucursal
+            $sucursal = Sasucursal::find($sucursalId);
+            if (!$sucursal) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sucursal no encontrada'
+                ]);
+            }
+
+            // Fecha del día anterior (inventario inicial)
+            $fechaAnterior = Carbon::parse($fecha)->subDay()->format('Y-m-d');
+
+            // Obtener inventario del día actual (sincronización)
+            $inventarioActual = Saeprdday::where('fecha', $fecha)
+                ->where('fksucursal', $sucursalId)
+                ->get()
+                ->keyBy('codprod');
+
+            // Obtener inventario del día anterior (base)
+            $inventarioAnterior = Saeprdday::where('fecha', $fechaAnterior)
+                ->where('fksucursal', $sucursalId)
+                ->get()
+                ->keyBy('codprod');
+
+            // Obtener todas las compras del día (que aumentan inventario)
+            $compras = Saitemcom::where('fk_sucursal', $sucursalId)
+                ->whereDate('fechae', $fecha)
+                ->where('tipocom', 'H') // Solo compras normales
+                ->get()
+                ->groupBy('coditem');
+
+            // Obtener devoluciones de compra del día (disminuyen inventario)
+            $devolucionesCompras = Saitemcom::where('fk_sucursal', $sucursalId)
+                ->whereDate('fechae', $fecha)
+                ->where('tipocom', 'I')
+                ->get()
+                ->groupBy('coditem');
+
+            // Obtener ventas del día (disminuyen inventario)
+            $ventas = Saitemfac::where('fk_sucursal', $sucursalId)
+                ->whereDate('fechae', $fecha)
+                ->where('tipofac', 'A')
+                ->get()
+                ->groupBy('coditem');
+
+            // Obtener devoluciones de venta del día (aumentan inventario)
+            $devolucionesVentas = Saitemfac::where('fk_sucursal', $sucursalId)
+                ->whereDate('fechae', $fecha)
+                ->where('tipofac', 'B')
+                ->get()
+                ->groupBy('coditem');
+
+            // Obtener cargos del día (tipoopi = 'O' - aumentan inventario)
+            $cargos = Saitemopi::where('fk_sucursal', $sucursalId)
+                ->whereDate('fechae', $fecha)
+                ->where('tipoopi', 'O')
+                ->get()
+                ->groupBy('coditem');
+
+            // Obtener descargos del día (tipoopi = 'P' - disminuyen inventario)
+            $descargos = Saitemopi::where('fk_sucursal', $sucursalId)
+                ->whereDate('fechae', $fecha)
+                ->where('tipoopi', 'P')
+                ->get()
+                ->groupBy('coditem');
+
+            // Obtener todos los códigos de productos involucrados
+            $todosCodigos = collect();
+            $todosCodigos = $todosCodigos->merge($inventarioAnterior->keys());
+            $todosCodigos = $todosCodigos->merge($inventarioActual->keys());
+            $todosCodigos = $todosCodigos->merge($compras->keys());
+            $todosCodigos = $todosCodigos->merge($devolucionesCompras->keys());
+            $todosCodigos = $todosCodigos->merge($ventas->keys());
+            $todosCodigos = $todosCodigos->merge($devolucionesVentas->keys());
+            $todosCodigos = $todosCodigos->merge($cargos->keys());
+            $todosCodigos = $todosCodigos->merge($descargos->keys());
+            $todosCodigos = $todosCodigos->unique();
+
+            // Construir datos de seguimiento
+            $datos = [];
+            $resumen = [
+                'total_productos' => 0,
+                'total_compras' => 0,
+                'total_ventas' => 0,
+                'total_cargos' => 0,
+                'total_descargos' => 0,
+                'inventario_inicial_total' => 0,
+                'inventario_final_total' => 0,
+                'merma_total' => 0,
+                'merma_porcentaje' => 0
+            ];
+
+            foreach ($todosCodigos as $codprod) {
+                $prodInfo = Saprod::where('codprod', $codprod)
+                    ->where('comercial', $comercialid)
+                    ->first();
+
+                if (!$prodInfo) continue;
+
+                $inicial = $inventarioAnterior->get($codprod);
+                $actual = $inventarioActual->get($codprod);
+
+                $cantidadInicial = $inicial ? $inicial->existen : 0;
+                $cantidadActual = $actual ? $actual->existen : 0;
+
+                // Calcular movimientos
+                $totalCompras = $compras->get($codprod, collect())->sum('cantidad');
+                $totalDevCompras = $devolucionesCompras->get($codprod, collect())->sum('cantidad');
+                $totalVentas = $ventas->get($codprod, collect())->sum('cantidad');
+                $totalDevVentas = $devolucionesVentas->get($codprod, collect())->sum('cantidad');
+                $totalCargos = $cargos->get($codprod, collect())->sum('cantidad');
+                $totalDescargos = $descargos->get($codprod, collect())->sum('cantidad');
+
+                // Calcular merma (diferencia entre lo que debería haber y lo que hay)
+                $deberiaHaber = $cantidadInicial + $totalCompras - $totalDevCompras - $totalVentas + $totalDevVentas + $totalCargos - $totalDescargos;
+                $merma = $deberiaHaber - $cantidadActual;
+
+                // Solo mostrar productos con movimiento o con merma
+                if ($totalCompras > 0 || $totalDevCompras > 0 || $totalVentas > 0 ||
+                    $totalDevVentas > 0 || $totalCargos > 0 || $totalDescargos > 0 ||
+                    $cantidadInicial > 0 || $cantidadActual > 0 || $merma != 0) {
+
+                    $datos[] = [
+                        'codprod' => $codprod,
+                        'descrip' => $prodInfo->descrip ?? $codprod,
+                        'categoria' => $prodInfo->instancia->descrip ?? 'N/A',
+                        'inventario_inicial' => $cantidadInicial,
+                        'inventario_final' => $cantidadActual,
+                        'compras' => $totalCompras,
+                        'devoluciones_compras' => $totalDevCompras,
+                        'ventas' => $totalVentas,
+                        'devoluciones_ventas' => $totalDevVentas,
+                        'cargos' => $totalCargos,
+                        'descargos' => $totalDescargos,
+                        'deberia_haber' => $deberiaHaber,
+                        'merma' => $merma,
+                        'merma_porcentaje' => $deberiaHaber > 0 ? round(($merma / $deberiaHaber) * 100, 2) : 0
+                    ];
+
+                    // Actualizar resumen
+                    $resumen['total_productos']++;
+                    $resumen['total_compras'] += $totalCompras;
+                    $resumen['total_ventas'] += $totalVentas;
+                    $resumen['total_cargos'] += $totalCargos;
+                    $resumen['total_descargos'] += $totalDescargos;
+                    $resumen['inventario_inicial_total'] += $cantidadInicial;
+                    $resumen['inventario_final_total'] += $cantidadActual;
+                    $resumen['merma_total'] += $merma;
+                }
+            }
+
+            // Calcular porcentaje de merma total
+            $resumen['merma_porcentaje'] = $resumen['inventario_inicial_total'] > 0
+                ? round(($resumen['merma_total'] / $resumen['inventario_inicial_total']) * 100, 2)
+                : 0;
+
+            // Ordenar por merma (mayor a menor)
+            usort($datos, function($a, $b) {
+                return abs($b['merma']) - abs($a['merma']);
+            });
+
+            // Obtener información de la sucursal
+            $sucursalInfo = Sasucursal::find($sucursalId);
+
+            return response()->json([
+                'success' => true,
+                'fecha' => $fecha,
+                'fecha_formateada' => Carbon::parse($fecha)->format('d/m/Y'),
+                'sucursal' => $sucursalInfo ? $sucursalInfo->descrip : '',
+                'resumen' => $resumen,
+                'data' => $datos
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error en getSeguimientoDiarioData: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener datos: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Obtener detalle de un producto en el seguimiento diario
+     */
+    public function getDetalleProductoSeguimiento(Request $request)
+    {
+        try {
+            $comercialid = session('comercialid') ?? 1;
+            $codprod = $request->input('codprod');
+            $fecha = $request->input('fecha', Carbon::now()->format('Y-m-d'));
+            $sucursalId = $request->input('sucursal_id', 0);
+
+            if (!$codprod || $sucursalId == 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Faltan parámetros'
+                ]);
+            }
+
+            // Obtener información del producto
+            $producto = Saprod::where('codprod', $codprod)
+                ->where('comercial', $comercialid)
+                ->with('instancia')
+                ->first();
+
+            if (!$producto) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Producto no encontrado'
+                ]);
+            }
+
+            // Detalle de movimientos
+            $detalle = [];
+
+            // Compras del día
+            $compras = Saitemcom::where('fk_sucursal', $sucursalId)
+                ->whereDate('fechae', $fecha)
+                ->where('coditem', $codprod)
+                ->where('tipocom', 'H')
+                ->with(['compra'])
+                ->get();
+
+            foreach ($compras as $compra) {
+                $detalle[] = [
+                    'tipo' => 'COMPRA',
+                    'fecha' => $compra->fechae,
+                    'cantidad' => $compra->cantidad,
+                    'referencia' => $compra->compra->numerod ?? 'N/A',
+                    'usuario' => $compra->compra->codusua ?? 'N/A',
+                    'observacion' => $compra->compra->notas1 ?? ''
+                ];
+            }
+
+            // Ventas del día
+            $ventas = Saitemfac::where('fk_sucursal', $sucursalId)
+                ->whereDate('fechae', $fecha)
+                ->where('coditem', $codprod)
+                ->where('tipofac', 'A')
+                ->with(['factura'])
+                ->get();
+
+            foreach ($ventas as $venta) {
+                $detalle[] = [
+                    'tipo' => 'VENTA',
+                    'fecha' => $venta->fechae,
+                    'cantidad' => $venta->cantidad,
+                    'referencia' => $venta->factura->numerod ?? 'N/A',
+                    'usuario' => $venta->factura->codusua ?? 'N/A',
+                    'observacion' => $venta->factura->notas1 ?? ''
+                ];
+            }
+
+            // Cargos del día (tipoopi = 'O')
+            $cargos = Saitemopi::where('fk_sucursal', $sucursalId)
+                ->whereDate('fechae', $fecha)
+                ->where('coditem', $codprod)
+                ->where('tipoopi', 'O')
+                ->with(['opei'])
+                ->get();
+
+            foreach ($cargos as $cargo) {
+                $detalle[] = [
+                    'tipo' => 'CARGO',
+                    'fecha' => $cargo->fechae,
+                    'cantidad' => $cargo->cantidad,
+                    'referencia' => $cargo->opei->numerod ?? 'N/A',
+                    'usuario' => $cargo->opei->codusua ?? 'N/A',
+                    'observacion' => $cargo->opei->notas1 ?? ''
+                ];
+            }
+
+            // Descargos del día (tipoopi = 'P')
+            $descargos = Saitemopi::where('fk_sucursal', $sucursalId)
+                ->whereDate('fechae', $fecha)
+                ->where('coditem', $codprod)
+                ->where('tipoopi', 'P')
+                ->with(['opei'])
+                ->get();
+
+            foreach ($descargos as $descargo) {
+                $detalle[] = [
+                    'tipo' => 'DESCARGO',
+                    'fecha' => $descargo->fechae,
+                    'cantidad' => $descargo->cantidad,
+                    'referencia' => $descargo->opei->numerod ?? 'N/A',
+                    'usuario' => $descargo->opei->codusua ?? 'N/A',
+                    'observacion' => $descargo->opei->notas1 ?? ''
+                ];
+            }
+
+            // Devoluciones de compra
+            $devCompras = Saitemcom::where('fk_sucursal', $sucursalId)
+                ->whereDate('fechae', $fecha)
+                ->where('coditem', $codprod)
+                ->where('tipocom', 'I')
+                ->with(['compra'])
+                ->get();
+
+            foreach ($devCompras as $devCompra) {
+                $detalle[] = [
+                    'tipo' => 'DEVOLUCIÓN COMPRA',
+                    'fecha' => $devCompra->fechae,
+                    'cantidad' => -$devCompra->cantidad,
+                    'referencia' => $devCompra->compra->numerod ?? 'N/A',
+                    'usuario' => $devCompra->compra->codusua ?? 'N/A',
+                    'observacion' => $devCompra->compra->notas1 ?? ''
+                ];
+            }
+
+            // Devoluciones de venta
+            $devVentas = Saitemfac::where('fk_sucursal', $sucursalId)
+                ->whereDate('fechae', $fecha)
+                ->where('coditem', $codprod)
+                ->where('tipofac', 'B')
+                ->with(['factura'])
+                ->get();
+
+            foreach ($devVentas as $devVenta) {
+                $detalle[] = [
+                    'tipo' => 'DEVOLUCIÓN VENTA',
+                    'fecha' => $devVenta->fechae,
+                    'cantidad' => $devVenta->cantidad,
+                    'referencia' => $devVenta->factura->numerod ?? 'N/A',
+                    'usuario' => $devVenta->factura->codusua ?? 'N/A',
+                    'observacion' => $devVenta->factura->notas1 ?? ''
+                ];
+            }
+
+            // Ordenar por fecha
+            usort($detalle, function($a, $b) {
+                return strtotime($a['fecha']) - strtotime($b['fecha']);
+            });
+
+            return response()->json([
+                'success' => true,
+                'producto' => [
+                    'codprod' => $producto->codprod,
+                    'descrip' => $producto->descrip,
+                    'categoria' => $producto->instancia->descrip ?? 'N/A'
+                ],
+                'detalle' => $detalle,
+                'total_movimientos' => count($detalle)
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error en getDetalleProductoSeguimiento: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener detalle: ' . $e->getMessage()
+            ]);
+        }
     }
 }

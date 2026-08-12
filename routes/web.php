@@ -112,6 +112,13 @@ Route::middleware(['auth'])->group(function () {
             ->name('inventario.calendario');
         Route::post('/calendario-sincronizacion/data', [InventarioHistoricoController::class, 'getCalendarioSincronizacionData'])
             ->name('inventario.calendario.data');
+
+        Route::get('/seguimiento-diario', [InventarioHistoricoController::class, 'seguimientoDiario'])
+            ->name('inventario.seguimiento.diario');
+        Route::post('/seguimiento-diario/data', [InventarioHistoricoController::class, 'getSeguimientoDiarioData'])
+            ->name('inventario.seguimiento.diario.data');
+        Route::post('/seguimiento-diario/detalle-producto', [InventarioHistoricoController::class, 'getDetalleProductoSeguimiento'])
+            ->name('inventario.seguimiento.diario.detalle');
     });
 // }
 
