@@ -448,7 +448,6 @@ class SaprodController extends Controller
         $fec2Sql = "$y2-$m2-$d2";
 
         // Construir consulta para mermas
-        // Solo operaciones donde saoper.merma = 1
         $query = DB::table('saitemopi as b')
             ->select([
                 'a.codprod',
@@ -474,8 +473,8 @@ class SaprodController extends Controller
             ->where('c.fk_comercial', $comercialid)
             ->where('e.comercial', $comercialid)
             ->where('f.comercial', $comercialid)
-            ->where('f.merma', 1) // Solo operaciones marcadas como merma
-            ->whereIn('b.tipoopi', ['P']) // Solo descargos
+            ->where('f.merma', 1)
+            ->whereIn('b.tipoopi', ['P'])
             ->whereBetween('b.FechaE', [$fec1Sql . ' 00:00:00.000', $fec2Sql . ' 23:59:59.999'])
             ->whereBetween('d.FechaT', [$fec1Sql . ' 00:00:00.000', $fec2Sql . ' 23:59:59.999']);
 
@@ -523,12 +522,6 @@ class SaprodController extends Controller
 
         asort($sucursales);
 
-        // Obtener operaciones de merma para el filtro
-        $operacionesMerma = Saoper::where('comercial', $comercialid)
-            ->where('merma', 1)
-            ->orderBy('orden', 'asc')
-            ->get();
-
         return view('mermasSucursales', compact(
             'fecha1',
             'fecha2',
@@ -539,8 +532,7 @@ class SaprodController extends Controller
             'codinst',
             'fksucursal',
             'allsucursales',
-            'instancias',
-            'operacionesMerma'
+            'instancias'
         ));
     }
 
