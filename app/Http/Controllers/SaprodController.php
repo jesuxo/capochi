@@ -416,10 +416,10 @@ class SaprodController extends Controller
             ->get();
 
         // Parámetros de filtro
-        $fksucursal = $request->input('fksucursal');
-        $codinst = $request->input('codinst');
+        $fksucursal   = $request->input('fksucursal');
+        $codinst      = $request->input('codinst');
         $fechasreport = $request->input('fechasreport');
-        $fechashoy = Carbon::now()->format('d/m/Y');
+        $fechashoy    = Carbon::now()->format('d/m/Y');
 
         if (!$fechasreport) {
             $fechasreport = $fechashoy;
@@ -459,7 +459,7 @@ class SaprodController extends Controller
                 'e.codalte',
                 'f.descrip as operacion',
                 'f.codoper',
-                DB::raw('SUM(b.Cantidad * d.Signo) as cantidad_merma')
+                DB::raw('SUM(b.Cantidad ) as cantidad_merma')
             ])
             ->join('saprod as a', 'a.codprod', '=', 'b.CodItem')
             ->join('sasucursal as c', 'c.id', '=', 'b.fk_sucursal')
@@ -497,9 +497,9 @@ class SaprodController extends Controller
             ->get();
 
         // Procesar datos para la vista
-        $sucursales = [];
+        $sucursales   = [];
         $cantidadprod = [];
-        $itemmermas = [];
+        $itemmermas   = [];
 
         foreach ($listado as $merma) {
             if (!isset($sucursales[$merma->fk_sucursal])) {
@@ -513,9 +513,9 @@ class SaprodController extends Controller
             $cantidadprod[$key] += $merma->cantidad_merma;
 
             $itemmermas[$merma->instancia][$merma->codprod] = [
-                'descrip' => $merma->producto,
+                'descrip'   => $merma->producto,
                 'exdecimal' => $merma->exdecimal,
-                'codoper' => $merma->codoper,
+                'codoper'   => $merma->codoper,
                 'operacion' => $merma->operacion
             ];
         }
