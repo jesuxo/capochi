@@ -733,6 +733,9 @@ class InventarioHistoricoController extends Controller
         return view('inventario-seguimiento', compact('sucursales'));
     }
 
+    /**
+     * Obtener datos del seguimiento diario de inventario
+     */
     public function getSeguimientoDiarioData(Request $request)
     {
         try {
@@ -758,8 +761,50 @@ class InventarioHistoricoController extends Controller
                 ]);
             }
 
-            // Fecha del día anterior (inventario inicial)
-            $fechaAnterior = Carbon::parse($fecha)->subDay()->format('Y-m-d');
+            // ========== NUEVO: OBTENER LA ÚLTIMA FECHA TRABAJADA ==========
+            // Buscar la última fecha donde haya sincronización ANTES de la fecha seleccionada
+            $ultimaFechaTrabajada = Saeprdday::where('fksucursal', $sucursalId)
+                ->where('fecha', '<', $fecha)
+                ->orderBy('fecha', 'desc')
+                ->value('fecha');
+
+            // Si no hay fecha anterior, usamos la fecha seleccionada (no habrá inventario inicial)
+            if (!$ultimaFechaTrabajada) {
+                // Buscar si hay sincronización en la fecha seleccionada
+                $tieneSyncHoy = Saeprdday::where('fksucursal', $sucursalId)
+                    ->where('fecha', $fecha)
+                    ->exists();
+
+                if (!$tieneSyncHoy) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'No hay sincronización registrada para esta fecha',
+                        'data' => [],
+                        'resumen' => [
+                            'total_productos' => 0,
+                            'inventario_inicial_total' => 0,
+                            'inventario_final_total' => 0,
+                            'merma_total' => 0,
+                            'merma_porcentaje' => 0,
+                            'ultima_fecha_trabajada' => null,
+                            'mensaje' => 'No se encontró sincronización para la fecha seleccionada'
+                        ]
+                    ]);
+                }
+
+                // Si solo hay sincronización hoy, usamos hoy como fecha inicial
+                $ultimaFechaTrabajada = $fecha;
+                $fechaAnterior = $fecha;
+                $inventarioAnterior = collect(); // Vacío
+            } else {
+                $fechaAnterior = $ultimaFechaTrabajada;
+
+                // Obtener inventario del día anterior trabajado
+                $inventarioAnterior = Saeprdday::where('fecha', $fechaAnterior)
+                    ->where('fksucursal', $sucursalId)
+                    ->get()
+                    ->keyBy('codprod');
+            }
 
             // Obtener inventario del día actual (sincronización)
             $inventarioActual = Saeprdday::where('fecha', $fecha)
@@ -767,11 +812,23 @@ class InventarioHistoricoController extends Controller
                 ->get()
                 ->keyBy('codprod');
 
-            // Obtener inventario del día anterior (base)
-            $inventarioAnterior = Saeprdday::where('fecha', $fechaAnterior)
-                ->where('fksucursal', $sucursalId)
-                ->get()
-                ->keyBy('codprod');
+            // Si no hay inventario actual, retornar mensaje
+            if ($inventarioActual->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No hay sincronización para la fecha seleccionada',
+                    'data' => [],
+                    'resumen' => [
+                        'total_productos' => 0,
+                        'inventario_inicial_total' => 0,
+                        'inventario_final_total' => 0,
+                        'merma_total' => 0,
+                        'merma_porcentaje' => 0,
+                        'ultima_fecha_trabajada' => $ultimaFechaTrabajada ? Carbon::parse($ultimaFechaTrabajada)->format('d/m/Y') : null,
+                        'mensaje' => 'No hay sincronización para la fecha seleccionada'
+                    ]
+                ]);
+            }
 
             // Obtener todas las compras del día (que aumentan inventario)
             $compras = Saitemcom::where('fk_sucursal', $sucursalId)
@@ -838,7 +895,9 @@ class InventarioHistoricoController extends Controller
                 'inventario_inicial_total' => 0,
                 'inventario_final_total' => 0,
                 'merma_total' => 0,
-                'merma_porcentaje' => 0
+                'merma_porcentaje' => 0,
+                'ultima_fecha_trabajada' => $ultimaFechaTrabajada ? Carbon::parse($ultimaFechaTrabajada)->format('d/m/Y') : null,
+                'dias_sin_sincronizar' => $ultimaFechaTrabajada ? Carbon::parse($ultimaFechaTrabajada)->diffInDays($fecha) : 0
             ];
 
             foreach ($todosCodigos as $codprod) {
@@ -904,6 +963,10 @@ class InventarioHistoricoController extends Controller
             $resumen['merma_porcentaje'] = $resumen['inventario_inicial_total'] > 0
                 ? round(($resumen['merma_total'] / $resumen['inventario_inicial_total']) * 100, 2)
                 : 0;
+
+            // Agregar información de fechas al resumen
+            $resumen['fecha_actual'] = Carbon::parse($fecha)->format('d/m/Y');
+            $resumen['fecha_anterior_trabajada'] = $ultimaFechaTrabajada ? Carbon::parse($ultimaFechaTrabajada)->format('d/m/Y') : 'Sin dato anterior';
 
             // Ordenar por merma (mayor a menor)
             usort($datos, function($a, $b) {

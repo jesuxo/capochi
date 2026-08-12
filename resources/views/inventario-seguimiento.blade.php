@@ -344,16 +344,36 @@
         }
 
         function renderSeguimiento(data) {
+            // Verificar si hay datos
             if (!data.data || data.data.length === 0) {
-                $('#seguimientoContent').html(`
+                let mensaje = data.resumen?.mensaje || 'No hay movimientos para esta fecha';
+                let html = `
             <div class="alert alert-info text-center py-4">
                 <i class="bi bi-info-circle fs-2 d-block mb-3"></i>
-                <h5>No hay movimientos para esta fecha</h5>
-                <p class="mb-0">No se encontraron movimientos de inventario para la fecha seleccionada.</p>
+                <h5>${mensaje}</h5>
+        `;
+
+                if (data.resumen?.ultima_fecha_trabajada) {
+                    html += `
+                <p class="mb-0">
+                    Última fecha trabajada: <strong>${data.resumen.ultima_fecha_trabajada}</strong>
+                    ${data.resumen.dias_sin_sincronizar > 1 ? `(hace ${data.resumen.dias_sincronizar} días)` : ''}
+                </p>
+            `;
+                }
+
+                html += `
+                <p class="text-muted mt-2 small">Seleccione otra fecha o verifique que la sucursal haya sincronizado</p>
             </div>
-        `);
+        `;
+
+                $('#seguimientoContent').html(html);
                 return;
             }
+
+            // ========== RESUMEN GENERAL ==========
+            let fechaAnteriorMostrar = data.resumen.fecha_anterior_trabajada || 'Sin dato anterior';
+            let fechaActualMostrar = data.resumen.fecha_actual || data.fecha_formateada;
 
             let html = `
         <!-- Resumen General -->
@@ -365,11 +385,11 @@
                 </div>
                 <div class="col-md-2">
                     <div class="stat-number">${numberFormat(data.resumen.inventario_inicial_total, 0)}</div>
-                    <div class="stat-label">Inventario Inicial</div>
+                    <div class="stat-label">Inv. Inicial (${fechaAnteriorMostrar})</div>
                 </div>
                 <div class="col-md-2">
                     <div class="stat-number">${numberFormat(data.resumen.inventario_final_total, 0)}</div>
-                    <div class="stat-label">Inventario Final</div>
+                    <div class="stat-label">Inv. Final (${fechaActualMostrar})</div>
                 </div>
                 <div class="col-md-2">
                     <div class="stat-number" style="color: ${data.resumen.merma_total >= 0 ? '#ffd700' : '#28a745'}">
@@ -382,7 +402,7 @@
                     <div class="stat-label">% Merma</div>
                 </div>
                 <div class="col-md-2">
-                    <div class="stat-number">${data.resumen.total_compras + data.resumen.total_cargos}</div>
+                    <div class="stat-number">${numberFormat(data.resumen.total_compras + data.resumen.total_cargos, 0)}</div>
                     <div class="stat-label">Entradas</div>
                 </div>
             </div>
@@ -390,7 +410,8 @@
                 <div class="col-12">
                     <small class="opacity-75">
                         <i class="bi bi-info-circle me-1"></i>
-                        ${data.sucursal} - ${data.fecha_formateada}
+                        ${data.sucursal} - Período: ${fechaAnteriorMostrar} → ${fechaActualMostrar}
+                        ${data.resumen.dias_sin_sincronizar > 1 ? `<span class="badge bg-warning text-dark ms-2">⚠️ ${data.resumen.dias_sin_sincronizar} días sin sincronizar</span>` : ''}
                         <span class="badge bg-light text-dark ms-2">Compras: ${numberFormat(data.resumen.total_compras, 0)}</span>
                         <span class="badge bg-light text-dark ms-1">Ventas: ${numberFormat(data.resumen.total_ventas, 0)}</span>
                         <span class="badge bg-light text-dark ms-1">Cargos: ${numberFormat(data.resumen.total_cargos, 0)}</span>
@@ -399,8 +420,23 @@
                 </div>
             </div>
         </div>
+    `;
 
-        <!-- Tabla de seguimiento -->
+            // ========== ADVERTENCIA POR DÍAS SIN SINCRONIZAR ==========
+            if (data.resumen.dias_sin_sincronizar > 1) {
+                html += `
+            <div class="alert alert-warning mb-3">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>Atención:</strong> La última fecha trabajada fue
+                <strong>${data.resumen.fecha_anterior_trabajada}</strong>
+                (hace ${data.resumen.dias_sin_sincronizar} días).
+                Las comparaciones se realizan contra esa fecha.
+            </div>
+        `;
+            }
+
+            // ========== TABLA DE SEGUIMIENTO ==========
+            html += `
         <div class="scroll-horizontal">
             <table class="table table-bordered table-sm tabla-seguimiento">
                 <thead>
@@ -408,15 +444,21 @@
                         <th style="min-width: 80px;">Código</th>
                         <th style="min-width: 180px;">Producto</th>
                         <th style="min-width: 120px;">Categoría</th>
-                        <th style="min-width: 70px; text-align: center;">Inv. Inicial</th>
+                        <th style="min-width: 70px; text-align: center;" title="Inventario de la fecha anterior trabajada (${fechaAnteriorMostrar})">
+                            Inv. Inicial
+                        </th>
                         <th style="min-width: 70px; text-align: center;">Compras</th>
                         <th style="min-width: 70px; text-align: center;">Dev. Comp</th>
                         <th style="min-width: 70px; text-align: center;">Ventas</th>
                         <th style="min-width: 70px; text-align: center;">Dev. Vta</th>
                         <th style="min-width: 70px; text-align: center;">Cargos</th>
                         <th style="min-width: 70px; text-align: center;">Descargos</th>
-                        <th style="min-width: 70px; text-align: center;">Debe Haber</th>
-                        <th style="min-width: 70px; text-align: center;">Inv. Final</th>
+                        <th style="min-width: 70px; text-align: center;" title="Inventario que debería haber según los movimientos">
+                            Debe Haber
+                        </th>
+                        <th style="min-width: 70px; text-align: center;" title="Inventario real de la fecha actual (${fechaActualMostrar})">
+                            Inv. Final
+                        </th>
                         <th style="min-width: 80px; text-align: center;">Merma</th>
                         <th style="min-width: 70px; text-align: center;">% Merma</th>
                         <th style="min-width: 50px; text-align: center;">Acción</th>
@@ -425,13 +467,16 @@
                 <tbody>
     `;
 
+            // ========== FILAS DE DATOS ==========
             data.data.forEach(item => {
+                // Determinar clase y texto para la merma
                 let mermaClass = '';
                 let mermaTexto = '';
                 let mermaColor = '';
                 let absMerma = Math.abs(item.merma);
 
                 if (item.merma > 0) {
+                    // Merma positiva (pérdida)
                     if (absMerma > 100) {
                         mermaClass = 'merma-alta';
                         mermaColor = '#dc3545';
@@ -444,23 +489,50 @@
                     }
                     mermaTexto = `-${numberFormat(absMerma, 0)}`;
                 } else if (item.merma < 0) {
+                    // Merma negativa (sobrante)
                     mermaClass = 'merma-positiva';
                     mermaColor = '#28a745';
                     mermaTexto = `+${numberFormat(absMerma, 0)}`;
                 } else {
+                    // Sin merma
                     mermaClass = 'merma-baja';
                     mermaColor = '#6c757d';
                     mermaTexto = '0';
                 }
 
-                let rowClass = item.merma > 20 ? 'table-danger' : '';
+                // Si la merma es alta, resaltar la fila
+                let rowClass = item.merma > 100 ? 'table-danger' : '';
+                if (item.merma > 20 && item.merma <= 100) {
+                    rowClass = 'table-warning';
+                }
+
+                // Porcentaje de merma con color
+                let mermaPorcClass = 'merma-baja';
+                let mermaPorcColor = '#6c757d';
+                let absPorc = Math.abs(item.merma_porcentaje);
+
+                if (item.merma_porcentaje > 0) {
+                    if (absPorc > 10) {
+                        mermaPorcClass = 'merma-alta';
+                        mermaPorcColor = '#dc3545';
+                    } else if (absPorc > 5) {
+                        mermaPorcClass = 'merma-media';
+                        mermaPorcColor = '#ffc107';
+                    } else {
+                        mermaPorcClass = 'merma-baja';
+                        mermaPorcColor = '#75a373';
+                    }
+                } else if (item.merma_porcentaje < 0) {
+                    mermaPorcClass = 'merma-positiva';
+                    mermaPorcColor = '#28a745';
+                }
 
                 html += `
             <tr class="${rowClass}">
                 <td><strong>${item.codprod}</strong></td>
                 <td>${item.descrip}</td>
                 <td><small>${item.categoria}</small></td>
-                <td class="text-center">${numberFormat(item.inventario_inicial, 0)}</td>
+                <td class="text-center fw-bold">${numberFormat(item.inventario_inicial, 0)}</td>
                 <td class="text-center text-success">${item.compras > 0 ? '+' + numberFormat(item.compras, 0) : '-'}</td>
                 <td class="text-center text-danger">${item.devoluciones_compras > 0 ? '-' + numberFormat(item.devoluciones_compras, 0) : '-'}</td>
                 <td class="text-center text-danger">${item.ventas > 0 ? '-' + numberFormat(item.ventas, 0) : '-'}</td>
@@ -470,17 +542,17 @@
                 <td class="text-center fw-bold">${numberFormat(item.deberia_haber, 0)}</td>
                 <td class="text-center fw-bold">${numberFormat(item.inventario_final, 0)}</td>
                 <td class="text-center">
-                    <span class="merma-badge ${mermaClass}" style="color: ${item.merma <= 0 ? 'white' : 'black'}">
+                    <span class="merma-badge ${mermaClass}" style="color: ${item.merma <= 0 ? 'white' : 'black'}; background-color: ${mermaColor};">
                         ${mermaTexto}
                     </span>
                 </td>
                 <td class="text-center">
-                    <span class="merma-badge ${mermaClass}" style="color: ${item.merma <= 0 ? 'white' : 'black'}">
+                    <span class="merma-badge ${mermaPorcClass}" style="color: ${item.merma_porcentaje <= 0 ? 'white' : 'black'}; background-color: ${mermaPorcColor};">
                         ${item.merma_porcentaje}%
                     </span>
                 </td>
                 <td class="text-center">
-                    <button class="btn btn-sm btn-outline-primary" onclick="verDetalleProducto('${item.codprod}')" title="Ver detalle">
+                    <button class="btn btn-sm btn-outline-primary" onclick="verDetalleProducto('${item.codprod}')" title="Ver detalle de movimientos">
                         <i class="bi bi-eye"></i>
                     </button>
                 </td>
@@ -488,13 +560,83 @@
         `;
             });
 
+            // ========== FILA DE TOTALES ==========
+            if (data.data.length > 0) {
+                let totalInicial = data.data.reduce((sum, item) => sum + item.inventario_inicial, 0);
+                let totalCompras = data.data.reduce((sum, item) => sum + item.compras, 0);
+                let totalDevCompras = data.data.reduce((sum, item) => sum + item.devoluciones_compras, 0);
+                let totalVentas = data.data.reduce((sum, item) => sum + item.ventas, 0);
+                let totalDevVentas = data.data.reduce((sum, item) => sum + item.devoluciones_ventas, 0);
+                let totalCargos = data.data.reduce((sum, item) => sum + item.cargos, 0);
+                let totalDescargos = data.data.reduce((sum, item) => sum + item.descargos, 0);
+                let totalDebeHaber = data.data.reduce((sum, item) => sum + item.deberia_haber, 0);
+                let totalFinal = data.data.reduce((sum, item) => sum + item.inventario_final, 0);
+                let totalMerma = data.data.reduce((sum, item) => sum + item.merma, 0);
+
+                let mermaTotalClass = totalMerma > 100 ? 'merma-alta' : (totalMerma > 20 ? 'merma-media' : 'merma-baja');
+                let mermaTotalColor = totalMerma > 100 ? '#dc3545' : (totalMerma > 20 ? '#ffc107' : '#75a373');
+                let mermaTotalTexto = totalMerma > 0 ? `-${numberFormat(Math.abs(totalMerma), 0)}` : (totalMerma < 0 ? `+${numberFormat(Math.abs(totalMerma), 0)}` : '0');
+
+                html += `
+            <tr class="table-primary fw-bold">
+                <td colspan="3" class="text-center">TOTALES</td>
+                <td class="text-center">${numberFormat(totalInicial, 0)}</td>
+                <td class="text-center text-success">${totalCompras > 0 ? '+' + numberFormat(totalCompras, 0) : '-'}</td>
+                <td class="text-center text-danger">${totalDevCompras > 0 ? '-' + numberFormat(totalDevCompras, 0) : '-'}</td>
+                <td class="text-center text-danger">${totalVentas > 0 ? '-' + numberFormat(totalVentas, 0) : '-'}</td>
+                <td class="text-center text-success">${totalDevVentas > 0 ? '+' + numberFormat(totalDevVentas, 0) : '-'}</td>
+                <td class="text-center text-success">${totalCargos > 0 ? '+' + numberFormat(totalCargos, 0) : '-'}</td>
+                <td class="text-center text-danger">${totalDescargos > 0 ? '-' + numberFormat(totalDescargos, 0) : '-'}</td>
+                <td class="text-center">${numberFormat(totalDebeHaber, 0)}</td>
+                <td class="text-center">${numberFormat(totalFinal, 0)}</td>
+                <td class="text-center">
+                    <span class="merma-badge ${mermaTotalClass}" style="background-color: ${mermaTotalColor}; color: ${totalMerma <= 0 ? 'white' : 'black'};">
+                        ${mermaTotalTexto}
+                    </span>
+                </td>
+                <td class="text-center">${data.resumen.merma_porcentaje}%</td>
+                <td></td>
+            </tr>
+        `;
+            }
+
             html += `
                 </tbody>
             </table>
         </div>
     `;
 
+            // ========== PIE DE PÁGINA CON INFORMACIÓN ADICIONAL ==========
+            html += `
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="d-flex justify-content-between flex-wrap gap-2">
+                    <small class="text-muted">
+                        <i class="bi bi-calendar3 me-1"></i>
+                        Fecha de consulta: ${data.fecha_formateada}
+                    </small>
+                    <small class="text-muted">
+                        <i class="bi bi-building me-1"></i>
+                        Sucursal: ${data.sucursal}
+                    </small>
+                    <small class="text-muted">
+                        <i class="bi bi-clock-history me-1"></i>
+                        Generado: ${new Date().toLocaleString('es-ES')}
+                    </small>
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        ${data.data.length} productos con movimientos
+                    </small>
+                </div>
+            </div>
+        </div>
+    `;
+
+            // ========== INSERTAR HTML EN EL CONTENEDOR ==========
             $('#seguimientoContent').html(html);
+
+            // ========== AGREGAR TOOLTIPS ==========
+            $('[title]').tooltip({ placement: 'top' });
         }
 
         function mostrarError(mensaje) {
@@ -653,10 +795,20 @@
             if (number === null || number === undefined) return '0';
             let num = typeof number === 'number' ? number : parseFloat(number);
             if (isNaN(num)) return '0';
-            return new Intl.NumberFormat('es-VE', {
-                minimumFractionDigits: decimals,
-                maximumFractionDigits: decimals
-            }).format(num);
+
+            // Redondear a los decimales especificados
+            let factor = Math.pow(10, decimals);
+            num = Math.round(num * factor) / factor;
+
+            // Formatear con separadores de miles y decimales
+            let parts = num.toFixed(decimals).split('.');
+            let integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            let decimalPart = parts[1] || '';
+
+            if (decimals > 0) {
+                return integerPart + ',' + decimalPart;
+            }
+            return integerPart;
         }
 
         function mostrarNotificacion(mensaje, tipo = 'success') {
