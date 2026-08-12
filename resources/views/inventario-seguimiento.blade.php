@@ -63,31 +63,6 @@
         .tabla-seguimiento tbody tr.table-danger:hover {
             background-color: #f8d7da !important;
         }
-        .merma-badge {
-            font-weight: bold;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            display: inline-block;
-            min-width: 60px;
-            text-align: center;
-        }
-        .merma-alta {
-            background: #dc3545;
-            color: white;
-        }
-        .merma-media {
-            background: #ffc107;
-            color: #000;
-        }
-        .merma-baja {
-            background: #75a373;
-            color: white;
-        }
-        .merma-positiva {
-            background: #28a745;
-            color: white;
-        }
         .scroll-horizontal {
             overflow-x: auto;
             max-height: 600px;
@@ -170,6 +145,32 @@
             padding: 10px;
             border-radius: 4px;
         }
+
+        .diferencia-badge {
+            font-weight: bold;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: inline-block;
+            min-width: 60px;
+            text-align: center;
+        }
+        .diferencia-alta {
+            background: #dc3545;
+            color: white;
+        }
+        .diferencia-media {
+            background: #ffc107;
+            color: #000;
+        }
+        .diferencia-baja {
+            background: #75a373;
+            color: white;
+        }
+        .diferencia-positiva {
+            background: #28a745;
+            color: white;
+        }
     </style>
 @endsection
 
@@ -214,7 +215,7 @@
                         <div class="text-center py-5">
                             <i class="bi bi-arrow-repeat fs-1 d-block mb-3 text-muted"></i>
                             <h5>Seleccione una sucursal y fecha para ver el seguimiento</h5>
-                            <p class="text-muted">El sistema mostrará el inventario inicial, movimientos y mermas del día</p>
+                            <p class="text-muted">El sistema mostrará el inventario inicial, movimientos y diferencias del día</p>
                         </div>
                     </div>
                 </div>
@@ -268,11 +269,11 @@
                     cargarSeguimiento();
                 } else {
                     $('#seguimientoContent').html(`
-                <div class="text-center py-5">
-                    <i class="bi bi-building fs-1 d-block mb-3 text-muted"></i>
-                    <h5>Seleccione una sucursal para ver el seguimiento</h5>
-                </div>
-            `);
+                        <div class="text-center py-5">
+                            <i class="bi bi-building fs-1 d-block mb-3 text-muted"></i>
+                            <h5>Seleccione una sucursal para ver el seguimiento</h5>
+                        </div>
+                    `);
                 }
             });
         });
@@ -292,11 +293,11 @@
             }
 
             $('#seguimientoContent').html(`
-        <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-3 text-muted">Cargando seguimiento de inventario...</p>
-        </div>
-    `);
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-3 text-muted">Cargando seguimiento de inventario...</p>
+                </div>
+            `);
 
             $.ajax({
                 url: '/inventario/seguimiento-diario/data',
@@ -326,18 +327,18 @@
             if (!data.data || data.data.length === 0) {
                 let mensaje = data.resumen?.mensaje || 'No hay movimientos para esta fecha';
                 let html = `
-            <div class="alert alert-info text-center py-4">
-                <i class="bi bi-info-circle fs-2 d-block mb-3"></i>
-                <h5>${mensaje}</h5>
-        `;
+                    <div class="alert alert-info text-center py-4">
+                        <i class="bi bi-info-circle fs-2 d-block mb-3"></i>
+                        <h5>${mensaje}</h5>
+                `;
 
                 if (data.resumen?.ultima_fecha_trabajada) {
                     html += `
-                <p class="mb-0">
-                    Última fecha trabajada: <strong>${data.resumen.ultima_fecha_trabajada}</strong>
-                    ${data.resumen.dias_sin_sincronizar > 1 ? `(hace ${data.resumen.dias_sin_sincronizar} días)` : ''}
-                </p>
-            `;
+                        <p class="mb-0">
+                            Última fecha trabajada: <strong>${data.resumen.ultima_fecha_trabajada}</strong>
+                            ${data.resumen.dias_sin_sincronizar > 1 ? `(hace ${data.resumen.dias_sin_sincronizar} días)` : ''}
+                        </p>
+                    `;
                 }
 
                 html += `</div>`;
@@ -349,87 +350,87 @@
             let fechaActualMostrar = data.resumen.fecha_actual || data.fecha_formateada;
 
             let html = `
-        <!-- Resumen General -->
-        <div class="resumen-general">
-        <div class="row">
-            <div class="col-md-2">
-                <div class="stat-number">${data.resumen.total_productos}</div>
-                <div class="stat-label">Productos</div>
-            </div>
-            <div class="col-md-2">
-                <div class="stat-number">${numberFormat(data.resumen.inventario_inicial_total, 3)}</div>
-                <div class="stat-label">Inv. Inicial (${fechaAnteriorMostrar})</div>
-            </div>
-            <div class="col-md-2">
-                <div class="stat-number">${numberFormat(data.resumen.inventario_final_total, 3)}</div>
-                <div class="stat-label">Inv. Final (${fechaActualMostrar})</div>
-            </div>
-            <div class="col-md-2">
-                <div class="stat-number" style="color: ${data.resumen.diferencia_total >= 0 ? '#ffd700' : '#28a745'}">
-                    ${data.resumen.diferencia_total >= 0 ? '+' : ''}${numberFormat(data.resumen.diferencia_total, 3)}
+                <!-- Resumen General -->
+                <div class="resumen-general">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <div class="stat-number">${data.resumen.total_productos}</div>
+                            <div class="stat-label">Productos</div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="stat-number">${numberFormat(data.resumen.inventario_inicial_total, 3)}</div>
+                            <div class="stat-label">Inv. Inicial (${fechaAnteriorMostrar})</div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="stat-number">${numberFormat(data.resumen.inventario_final_total, 3)}</div>
+                            <div class="stat-label">Inv. Final (${fechaActualMostrar})</div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="stat-number" style="color: ${data.resumen.diferencia_total >= 0 ? '#ffd700' : '#28a745'}">
+                                ${data.resumen.diferencia_total >= 0 ? '+' : ''}${numberFormat(data.resumen.diferencia_total, 3)}
+                            </div>
+                            <div class="stat-label">Diferencia</div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="stat-number">${numberFormat(data.resumen.total_compras + data.resumen.total_cargos, 3)}</div>
+                            <div class="stat-label">Entradas</div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="stat-number">${numberFormat(data.resumen.total_ventas + data.resumen.total_descargos, 3)}</div>
+                            <div class="stat-label">Salidas</div>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <small class="opacity-75">
+                                <i class="bi bi-info-circle me-1"></i>
+                                ${data.sucursal} - Período: ${fechaAnteriorMostrar} → ${fechaActualMostrar}
+                                ${data.resumen.dias_sin_sincronizar > 1 ? `<span class="badge bg-warning text-dark ms-2">⚠️ ${data.resumen.dias_sin_sincronizar} días sin sincronizar</span>` : ''}
+                                <span class="badge bg-primary ms-2">Cargos: ${numberFormat(data.resumen.total_cargos, 3)}</span>
+                                <span class="badge bg-warning ms-1">Descargos: ${numberFormat(data.resumen.total_descargos, 3)}</span>
+                                <span class="badge bg-success ms-1">Compras: ${numberFormat(data.resumen.total_compras, 3)}</span>
+                                <span class="badge bg-danger ms-1">Ventas: ${numberFormat(data.resumen.total_ventas, 3)}</span>
+                            </small>
+                        </div>
+                    </div>
                 </div>
-                <div class="stat-label">Diferencia</div>
-            </div>
-            <div class="col-md-2">
-                <div class="stat-number">${numberFormat(data.resumen.total_compras + data.resumen.total_cargos, 3)}</div>
-                <div class="stat-label">Entradas</div>
-            </div>
-            <div class="col-md-2">
-                <div class="stat-number">${numberFormat(data.resumen.total_ventas + data.resumen.total_descargos, 3)}</div>
-                <div class="stat-label">Salidas</div>
-            </div>
-        </div>
-        <div class="row mt-2">
-            <div class="col-12">
-                <small class="opacity-75">
-                    <i class="bi bi-info-circle me-1"></i>
-                    ${data.sucursal} - Período: ${fechaAnteriorMostrar} → ${fechaActualMostrar}
-                    ${data.resumen.dias_sin_sincronizar > 1 ? `<span class="badge bg-warning text-dark ms-2">⚠️ ${data.resumen.dias_sin_sincronizar} días sin sincronizar</span>` : ''}
-                    <span class="badge bg-primary ms-2">Cargos: ${numberFormat(data.resumen.total_cargos, 3)}</span>
-                    <span class="badge bg-warning ms-1">Descargos: ${numberFormat(data.resumen.total_descargos, 3)}</span>
-                    <span class="badge bg-success ms-1">Compras: ${numberFormat(data.resumen.total_compras, 3)}</span>
-                    <span class="badge bg-danger ms-1">Ventas: ${numberFormat(data.resumen.total_ventas, 3)}</span>
-                </small>
-            </div>
-        </div>
-    </div>
-    `;
+            `;
 
             // Advertencia por días sin sincronizar
             if (data.resumen.dias_sin_sincronizar > 1) {
                 html += `
-            <div class="alert alert-warning mb-3">
-                <i class="bi bi-exclamation-triangle me-2"></i>
-                <strong>Atención:</strong> La última fecha trabajada fue
-                <strong>${data.resumen.fecha_anterior_trabajada}</strong>
-                (hace ${data.resumen.dias_sin_sincronizar} días).
-                Las comparaciones se realizan contra esa fecha.
-            </div>
-        `;
+                    <div class="alert alert-warning mb-3">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Atención:</strong> La última fecha trabajada fue
+                        <strong>${data.resumen.fecha_anterior_trabajada}</strong>
+                        (hace ${data.resumen.dias_sin_sincronizar} días).
+                        Las comparaciones se realizan contra esa fecha.
+                    </div>
+                `;
             }
 
-            // Tabla de seguimiento - SIN columnas de Merma
+            // Tabla de seguimiento - Encabezados con Diferencia en lugar de Merma
             html += `
-        <div class="scroll-horizontal">
-            <table class="table table-bordered table-sm tabla-seguimiento">
-                <thead>
-                    <tr>
-                        <th style="min-width: 80px;">Código</th>
-                        <th style="min-width: 180px;">Producto</th>
-                        <th style="min-width: 120px;">Categoría</th>
-                        <th style="min-width: 70px; text-align: center;" title="Inventario de la fecha anterior trabajada">Inv. Inicial</th>
-                        <th style="min-width: 70px; text-align: center;" class="text-primary">Cargos (+)</th>
-                        <th style="min-width: 70px; text-align: center;" class="text-warning">Descargos (-)</th>
-                        <th style="min-width: 70px; text-align: center;" class="text-success">Compras (+)</th>
-                        <th style="min-width: 70px; text-align: center;" class="text-danger">Ventas (-)</th>
-                        <th style="min-width: 70px; text-align: center;" title="Inventario que debería haber según los movimientos">Debe Haber</th>
-                        <th style="min-width: 70px; text-align: center;" title="Inventario real de la fecha actual">Inv. Final</th>
-                        <th style="min-width: 80px; text-align: center;">Diferencia</th>
-                        <th style="min-width: 50px; text-align: center;">Acción</th>
-                    </tr>
-                </thead>
-                <tbody>
-    `;
+                <div class="scroll-horizontal">
+                    <table class="table table-bordered table-sm tabla-seguimiento">
+                        <thead>
+                            <tr>
+                                <th style="min-width: 80px;">Código</th>
+                                <th style="min-width: 180px;">Producto</th>
+                                <th style="min-width: 120px;">Categoría</th>
+                                <th style="min-width: 70px; text-align: center;" title="Inventario de la fecha anterior trabajada">Inv. Inicial</th>
+                                <th style="min-width: 70px; text-align: center;" class="text-primary">Cargos (+)</th>
+                                <th style="min-width: 70px; text-align: center;" class="text-warning">Descargos (-)</th>
+                                <th style="min-width: 70px; text-align: center;" class="text-success">Compras (+)</th>
+                                <th style="min-width: 70px; text-align: center;" class="text-danger">Ventas (-)</th>
+                                <th style="min-width: 70px; text-align: center;" title="Inventario que debería haber según los movimientos">Debe Haber</th>
+                                <th style="min-width: 70px; text-align: center;" title="Inventario real de la fecha actual">Inv. Final</th>
+                                <th style="min-width: 80px; text-align: center;">Diferencia</th>
+                                <th style="min-width: 50px; text-align: center;">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
 
             data.data.forEach(item => {
                 let diffClass = '';
@@ -438,15 +439,15 @@
                 let absDiff = Math.abs(item.diferencia);
 
                 if (item.diferencia > 0) {
-                    diffClass = 'merma-alta';
+                    diffClass = 'diferencia-alta';
                     diffColor = '#dc3545';
                     diffTexto = `-${numberFormat(absDiff, 3)}`;
                 } else if (item.diferencia < 0) {
-                    diffClass = 'merma-positiva';
+                    diffClass = 'diferencia-positiva';
                     diffColor = '#28a745';
                     diffTexto = `+${numberFormat(absDiff, 3)}`;
                 } else {
-                    diffClass = 'merma-baja';
+                    diffClass = 'diferencia-baja';
                     diffColor = '#6c757d';
                     diffTexto = '0';
                 }
@@ -457,29 +458,29 @@
                 }
 
                 html += `
-            <tr class="${rowClass}">
-                <td><strong>${item.codprod}</strong></td>
-                <td>${item.descrip}</td>
-                <td><small>${item.categoria}</small></td>
-                <td class="text-center fw-bold">${numberFormat(item.inventario_inicial, 3)}</td>
-                <td class="text-center text-primary">${item.cargos > 0 ? '+' + numberFormat(item.cargos, 3) : '-'}</td>
-                <td class="text-center text-warning">${item.descargos > 0 ? '-' + numberFormat(item.descargos, 3) : '-'}</td>
-                <td class="text-center text-success">${item.compras > 0 ? '+' + numberFormat(item.compras, 3) : '-'}</td>
-                <td class="text-center text-danger">${item.ventas > 0 ? '-' + numberFormat(item.ventas, 3) : '-'}</td>
-                <td class="text-center fw-bold">${numberFormat(item.deberia_haber, 3)}</td>
-                <td class="text-center fw-bold">${numberFormat(item.inventario_final, 3)}</td>
-                <td class="text-center">
-                    <span class="merma-badge ${diffClass}" style="color: ${item.diferencia <= 0 ? 'white' : 'black'}; background-color: ${diffColor};">
-                        ${diffTexto}
-                    </span>
-                </td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-primary" onclick="verDetalleProducto('${item.codprod}')" title="Ver detalle de movimientos">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
+                    <tr class="${rowClass}">
+                        <td><strong>${item.codprod}</strong></td>
+                        <td>${item.descrip}</td>
+                        <td><small>${item.categoria}</small></td>
+                        <td class="text-center fw-bold">${numberFormat(item.inventario_inicial, 3)}</td>
+                        <td class="text-center text-primary">${item.cargos > 0 ? '+' + numberFormat(item.cargos, 3) : '-'}</td>
+                        <td class="text-center text-warning">${item.descargos > 0 ? '-' + numberFormat(item.descargos, 3) : '-'}</td>
+                        <td class="text-center text-success">${item.compras > 0 ? '+' + numberFormat(item.compras, 3) : '-'}</td>
+                        <td class="text-center text-danger">${item.ventas > 0 ? '-' + numberFormat(item.ventas, 3) : '-'}</td>
+                        <td class="text-center fw-bold">${numberFormat(item.deberia_haber, 3)}</td>
+                        <td class="text-center fw-bold">${numberFormat(item.inventario_final, 3)}</td>
+                        <td class="text-center">
+                            <span class="diferencia-badge ${diffClass}" style="color: ${item.diferencia <= 0 ? 'white' : 'black'}; background-color: ${diffColor};">
+                                ${diffTexto}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-primary" onclick="verDetalleProducto('${item.codprod}')" title="Ver detalle de movimientos">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
             });
 
             // Fila de totales
@@ -493,61 +494,61 @@
                 let totalFinal = data.data.reduce((sum, item) => sum + item.inventario_final, 0);
                 let totalDiferencia = data.data.reduce((sum, item) => sum + item.diferencia, 0);
 
-                let diffTotalClass = totalDiferencia > 100 ? 'merma-alta' : (totalDiferencia > 20 ? 'merma-media' : 'merma-baja');
+                let diffTotalClass = totalDiferencia > 100 ? 'diferencia-alta' : (totalDiferencia > 20 ? 'diferencia-media' : 'diferencia-baja');
                 let diffTotalColor = totalDiferencia > 100 ? '#dc3545' : (totalDiferencia > 20 ? '#ffc107' : '#75a373');
                 let diffTotalTexto = totalDiferencia > 0 ? `-${numberFormat(Math.abs(totalDiferencia), 3)}` : (totalDiferencia < 0 ? `+${numberFormat(Math.abs(totalDiferencia), 3)}` : '0');
 
                 html += `
-            <tr class="table-primary fw-bold">
-                <td colspan="3" class="text-center">TOTALES</td>
-                <td class="text-center">${numberFormat(totalInicial, 3)}</td>
-                <td class="text-center text-primary">${totalCargos > 0 ? '+' + numberFormat(totalCargos, 3) : '-'}</td>
-                <td class="text-center text-warning">${totalDescargos > 0 ? '-' + numberFormat(totalDescargos, 3) : '-'}</td>
-                <td class="text-center text-success">${totalCompras > 0 ? '+' + numberFormat(totalCompras, 3) : '-'}</td>
-                <td class="text-center text-danger">${totalVentas > 0 ? '-' + numberFormat(totalVentas, 3) : '-'}</td>
-                <td class="text-center">${numberFormat(totalDebeHaber, 3)}</td>
-                <td class="text-center">${numberFormat(totalFinal, 3)}</td>
-                <td class="text-center">
-                    <span class="merma-badge ${diffTotalClass}" style="background-color: ${diffTotalColor}; color: ${totalDiferencia <= 0 ? 'white' : 'black'};">
-                        ${diffTotalTexto}
-                    </span>
-                </td>
-                <td></td>
-            </tr>
-        `;
+                    <tr class="table-primary fw-bold">
+                        <td colspan="3" class="text-center">TOTALES</td>
+                        <td class="text-center">${numberFormat(totalInicial, 3)}</td>
+                        <td class="text-center text-primary">${totalCargos > 0 ? '+' + numberFormat(totalCargos, 3) : '-'}</td>
+                        <td class="text-center text-warning">${totalDescargos > 0 ? '-' + numberFormat(totalDescargos, 3) : '-'}</td>
+                        <td class="text-center text-success">${totalCompras > 0 ? '+' + numberFormat(totalCompras, 3) : '-'}</td>
+                        <td class="text-center text-danger">${totalVentas > 0 ? '-' + numberFormat(totalVentas, 3) : '-'}</td>
+                        <td class="text-center">${numberFormat(totalDebeHaber, 3)}</td>
+                        <td class="text-center">${numberFormat(totalFinal, 3)}</td>
+                        <td class="text-center">
+                            <span class="diferencia-badge ${diffTotalClass}" style="background-color: ${diffTotalColor}; color: ${totalDiferencia <= 0 ? 'white' : 'black'};">
+                                ${diffTotalTexto}
+                            </span>
+                        </td>
+                        <td></td>
+                    </tr>
+                `;
             }
 
             html += `
-                </tbody>
-            </table>
-        </div>
-    `;
+                        </tbody>
+                    </table>
+                </div>
+            `;
 
             // Pie de página
             html += `
-        <div class="row mt-3">
-            <div class="col-12">
-                <div class="d-flex justify-content-between flex-wrap gap-2">
-                    <small class="text-muted">
-                        <i class="bi bi-calendar3 me-1"></i>
-                        Fecha de consulta: ${data.fecha_formateada}
-                    </small>
-                    <small class="text-muted">
-                        <i class="bi bi-building me-1"></i>
-                        Sucursal: ${data.sucursal}
-                    </small>
-                    <small class="text-muted">
-                        <i class="bi bi-clock-history me-1"></i>
-                        Generado: ${new Date().toLocaleString('es-ES')}
-                    </small>
-                    <small class="text-muted">
-                        <i class="bi bi-info-circle me-1"></i>
-                        ${data.data.length} productos con movimientos
-                    </small>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between flex-wrap gap-2">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar3 me-1"></i>
+                                Fecha de consulta: ${data.fecha_formateada}
+                            </small>
+                            <small class="text-muted">
+                                <i class="bi bi-building me-1"></i>
+                                Sucursal: ${data.sucursal}
+                            </small>
+                            <small class="text-muted">
+                                <i class="bi bi-clock-history me-1"></i>
+                                Generado: ${new Date().toLocaleString('es-ES')}
+                            </small>
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                ${data.data.length} productos con movimientos
+                            </small>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-    `;
+            `;
 
             $('#seguimientoContent').html(html);
             $('[title]').tooltip({ placement: 'top' });
@@ -560,12 +561,12 @@
 
         function mostrarError(mensaje) {
             $('#seguimientoContent').html(`
-        <div class="alert alert-danger text-center py-4">
-            <i class="bi bi-exclamation-triangle fs-2 d-block mb-3"></i>
-            <h5>Error</h5>
-            <p class="mb-0">${mensaje}</p>
-        </div>
-    `);
+                <div class="alert alert-danger text-center py-4">
+                    <i class="bi bi-exclamation-triangle fs-2 d-block mb-3"></i>
+                    <h5>Error</h5>
+                    <p class="mb-0">${mensaje}</p>
+                </div>
+            `);
         }
 
         function verDetalleProducto(codprod) {
@@ -580,11 +581,11 @@
             $('#modalDetalleTitulo').text(`Detalle de movimientos - ${codprod}`);
             $('#modalDetalleProducto').modal('show');
             $('#modalDetalleContenido').html(`
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-3 text-muted">Cargando detalle del producto...</p>
-        </div>
-    `);
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-3 text-muted">Cargando detalle del producto...</p>
+                </div>
+            `);
 
             $.ajax({
                 url: '/inventario/seguimiento-diario/detalle-producto',
@@ -600,42 +601,42 @@
                         renderDetalleProducto(response);
                     } else {
                         $('#modalDetalleContenido').html(`
-                    <div class="alert alert-danger">${response.message || 'Error al cargar detalle'}</div>
-                `);
+                            <div class="alert alert-danger">${response.message || 'Error al cargar detalle'}</div>
+                        `);
                     }
                 },
                 error: function() {
                     $('#modalDetalleContenido').html(`
-                <div class="alert alert-danger">Error al cargar el detalle</div>
-            `);
+                        <div class="alert alert-danger">Error al cargar el detalle</div>
+                    `);
                 }
             });
         }
 
         function renderDetalleProducto(data) {
             let html = `
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <div class="alert alert-info">
-                    <strong>Producto:</strong> ${data.producto.codprod} - ${data.producto.descrip}
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="alert alert-info">
+                            <strong>Producto:</strong> ${data.producto.codprod} - ${data.producto.descrip}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="alert alert-secondary">
+                            <strong>Categoría:</strong> ${data.producto.categoria}
+                            <span class="badge bg-primary ms-2">${data.total_movimientos} movimientos</span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-6">
-                <div class="alert alert-secondary">
-                    <strong>Categoría:</strong> ${data.producto.categoria}
-                    <span class="badge bg-primary ms-2">${data.total_movimientos} movimientos</span>
-                </div>
-            </div>
-        </div>
-    `;
+            `;
 
             if (data.detalle.length === 0) {
                 html += `<div class="alert alert-warning">No hay movimientos registrados para este producto en esta fecha</div>`;
             } else {
                 html += `
-            <div class="detalle-modal">
-                <div class="list-group">
-        `;
+                    <div class="detalle-modal">
+                        <div class="list-group">
+                `;
 
                 data.detalle.forEach(item => {
                     let tipoClass = 'tipo-' + item.tipo.toLowerCase().replace(' ', '-');
@@ -676,36 +677,36 @@
                     let cantidadTexto = item.cantidad > 0 ? `+${numberFormat(item.cantidad, 3)}` : numberFormat(item.cantidad, 3);
 
                     html += `
-                <div class="list-group-item ${tipoClass}">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="badge ${badgeClass} badge-movimiento">
-                                <i class="bi ${icon} me-1"></i>
-                                ${item.tipo}
-                            </span>
-                            <span class="ms-2">
-                                <i class="bi bi-receipt me-1"></i>
-                                ${item.referencia}
-                            </span>
-                            <small class="text-muted ms-2">
-                                <i class="bi bi-clock me-1"></i>
-                                ${item.fecha}
-                            </small>
+                        <div class="list-group-item ${tipoClass}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge ${badgeClass} badge-movimiento">
+                                        <i class="bi ${icon} me-1"></i>
+                                        ${item.tipo}
+                                    </span>
+                                    <span class="ms-2">
+                                        <i class="bi bi-receipt me-1"></i>
+                                        ${item.referencia}
+                                    </span>
+                                    <small class="text-muted ms-2">
+                                        <i class="bi bi-clock me-1"></i>
+                                        ${item.fecha}
+                                    </small>
+                                </div>
+                                <div>
+                                    <span class="fw-bold ${cantidadClass}">${cantidadTexto}</span>
+                                </div>
+                            </div>
+                            ${item.observacion ? `<div class="mt-1"><small class="text-muted"><i class="bi bi-chat me-1"></i>${item.observacion}</small></div>` : ''}
+                            ${item.items ? `<div class="mt-1"><small class="text-muted"><i class="bi bi-box me-1"></i>${item.items}</small></div>` : ''}
                         </div>
-                        <div>
-                            <span class="fw-bold ${cantidadClass}">${cantidadTexto}</span>
-                        </div>
-                    </div>
-                    ${item.observacion ? `<div class="mt-1"><small class="text-muted"><i class="bi bi-chat me-1"></i>${item.observacion}</small></div>` : ''}
-                    ${item.items ? `<div class="mt-1"><small class="text-muted"><i class="bi bi-box me-1"></i>${item.items}</small></div>` : ''}
-                </div>
-            `;
+                    `;
                 });
 
                 html += `
-                </div>
-            </div>
-        `;
+                        </div>
+                    </div>
+                `;
             }
 
             $('#modalDetalleContenido').html(html);
@@ -745,12 +746,12 @@
             let textColor = tipo === 'warning' ? '#000' : '#fff';
 
             let notification = $(`
-        <div class="screenshot-notification alert" style="background-color: ${bgColor}; color: ${textColor};">
-            <i class="bi bi-${icono} me-2"></i>
-            ${mensaje}
-            <button type="button" class="btn-close btn-close-${tipo === 'warning' ? 'black' : 'white'}" data-bs-dismiss="alert"></button>
-        </div>
-    `);
+                <div class="screenshot-notification alert" style="background-color: ${bgColor}; color: ${textColor};">
+                    <i class="bi bi-${icono} me-2"></i>
+                    ${mensaje}
+                    <button type="button" class="btn-close btn-close-${tipo === 'warning' ? 'black' : 'white'}" data-bs-dismiss="alert"></button>
+                </div>
+            `);
             $('body').append(notification);
             setTimeout(() => notification.fadeOut(300, () => notification.remove()), 4000);
         }
