@@ -844,15 +844,23 @@
             let num = typeof number === 'number' ? number : parseFloat(number);
             if (isNaN(num)) return '0';
 
-            let factor = Math.pow(10, decimals);
-            num = Math.round(num * factor) / factor;
-
-            let parts = num.toFixed(decimals).split('.');
+            // Convertir a string y separar parte entera y decimal
+            let str = num.toString();
+            let parts = str.split('.');
             let integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
             let decimalPart = parts[1] || '';
 
-            if (decimals > 0) {
-                return integerPart + ',' + decimalPart;
+            // Si tiene decimales, mostrarlos sin redondear
+            if (decimalPart.length > 0) {
+                // Limitar a 3 decimales pero sin redondear
+                let maxDecimals = Math.min(decimalPart.length, 3);
+                let decimalTrimmed = decimalPart.substring(0, maxDecimals);
+                // Eliminar ceros al final
+                decimalTrimmed = decimalTrimmed.replace(/0+$/, '');
+                if (decimalTrimmed.length > 0) {
+                    return integerPart + ',' + decimalTrimmed;
+                }
+                return integerPart;
             }
             return integerPart;
         }

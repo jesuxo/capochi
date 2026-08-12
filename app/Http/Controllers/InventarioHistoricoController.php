@@ -818,49 +818,19 @@ class InventarioHistoricoController extends Controller
             }
 
             // ========== OBTENER MOVIMIENTOS ==========
-            // Usar whereDate con el campo correcto (FechaE en mayúscula)
-
             // 1. Cargos (TipoOpI = 'O') - AUMENTAN inventario
             $cargosQuery = Saitemopi::where('fk_sucursal', $sucursalId)
                 ->whereDate('FechaE', $fecha)
                 ->where('TipoOpI', 'O');
-
             $cargosData = $cargosQuery->get();
             $cargos = $cargosData->groupBy('CodItem');
-            $debugCargos = [
-                'count' => $cargosQuery->count(),
-                'sample' => $cargosData->take(3)->map(function($item) {
-                    return [
-                        'CodItem' => $item->CodItem,
-                        'Cantidad' => $item->Cantidad,
-                        'TipoOpI' => $item->TipoOpI,
-                        'Signo' => $item->Signo,
-                        'FechaE' => $item->FechaE,
-                        'fk_sucursal' => $item->fk_sucursal
-                    ];
-                })
-            ];
 
             // 2. Descargos (TipoOpI = 'P') - DISMINUYEN inventario
             $descargosQuery = Saitemopi::where('fk_sucursal', $sucursalId)
                 ->whereDate('FechaE', $fecha)
                 ->where('TipoOpI', 'P');
-
             $descargosData = $descargosQuery->get();
             $descargos = $descargosData->groupBy('CodItem');
-            $debugDescargos = [
-                'count' => $descargosQuery->count(),
-                'sample' => $descargosData->take(3)->map(function($item) {
-                    return [
-                        'CodItem' => $item->CodItem,
-                        'Cantidad' => $item->Cantidad,
-                        'TipoOpI' => $item->TipoOpI,
-                        'Signo' => $item->Signo,
-                        'FechaE' => $item->FechaE,
-                        'fk_sucursal' => $item->fk_sucursal
-                    ];
-                })
-            ];
 
             // 3. Compras (tipocom = 'H') - AUMENTAN inventario
             $comprasQuery = Saitemcom::where('fk_sucursal', $sucursalId)
@@ -873,45 +843,38 @@ class InventarioHistoricoController extends Controller
             $devComprasQuery = Saitemcom::where('fk_sucursal', $sucursalId)
                 ->whereDate('fechae', $fecha)
                 ->where('tipocom', 'I');
-            $devolucionesCompras = $devComprasQuery->get()->groupBy('coditem');
+            $devComprasData = $devComprasQuery->get();
+            $devolucionesCompras = $devComprasData->groupBy('coditem');
 
-            // 5. Ventas (tipofac = 'A') - DISMINUYEN inventario
+            // 5. Ventas (TipoFac = 'A') - DISMINUYEN inventario
             $ventasQuery = Saitemfac::where('fk_sucursal', $sucursalId)
-                ->whereDate('fechae', $fecha)
-                ->where('tipofac', 'A');
+                ->whereDate('FechaE', $fecha)
+                ->where('TipoFac', 'A');
             $ventasData = $ventasQuery->get();
-            $ventas = $ventasData->groupBy('coditem');
+            $ventas = $ventasData->groupBy('CodItem');
 
-            // 6. Devoluciones de venta (tipofac = 'B') - AUMENTAN inventario
+            // 6. Devoluciones de venta (TipoFac = 'B') - AUMENTAN inventario
             $devVentasQuery = Saitemfac::where('fk_sucursal', $sucursalId)
-                ->whereDate('fechae', $fecha)
-                ->where('tipofac', 'B');
-            $devolucionesVentas = $devVentasQuery->get()->groupBy('coditem');
+                ->whereDate('FechaE', $fecha)
+                ->where('TipoFac', 'B');
+            $devVentasData = $devVentasQuery->get();
+            $devolucionesVentas = $devVentasData->groupBy('CodItem');
 
             // ========== LOG DE DEPURACIÓN ==========
             \Log::info('=== SEGUIMIENTO DIARIO ===');
             \Log::info('Fecha: ' . $fecha);
             \Log::info('Sucursal ID: ' . $sucursalId);
-            \Log::info('Cargos encontrados: ' . $cargosQuery->count());
-            \Log::info('Descargos encontrados: ' . $descargosQuery->count());
-            \Log::info('Compras encontradas: ' . $comprasQuery->count());
-            \Log::info('Ventas encontradas: ' . $ventasQuery->count());
+            \Log::info('Cargos (O): ' . $cargosQuery->count());
+            \Log::info('Descargos (P): ' . $descargosQuery->count());
+            \Log::info('Compras (H): ' . $comprasQuery->count());
+            \Log::info('Dev Compras (I): ' . $devComprasQuery->count());
+            \Log::info('Ventas (A): ' . $ventasQuery->count());
+            \Log::info('Dev Ventas (B): ' . $devVentasQuery->count());
 
-            // Si no hay movimientos, mostrar mensaje de depuración
+            // Si no hay movimientos, mostrar mensaje
             if ($cargosQuery->count() == 0 && $descargosQuery->count() == 0 &&
-                $comprasQuery->count() == 0 && $ventasQuery->count() == 0) {
-
-                // Verificar si hay datos sin el filtro de sucursal
-                $cargosSinFiltro = Saitemopi::whereDate('FechaE', $fecha)->where('TipoOpI', 'O')->count();
-                $descargosSinFiltro = Saitemopi::whereDate('FechaE', $fecha)->where('TipoOpI', 'P')->count();
-                $comprasSinFiltro = Saitemcom::whereDate('fechae', $fecha)->where('tipocom', 'H')->count();
-                $ventasSinFiltro = Saitemfac::whereDate('fechae', $fecha)->where('tipofac', 'A')->count();
-
-                \Log::info('=== DATOS SIN FILTRO DE SUCURSAL ===');
-                \Log::info('Cargos sin filtro: ' . $cargosSinFiltro);
-                \Log::info('Descargos sin filtro: ' . $descargosSinFiltro);
-                \Log::info('Compras sin filtro: ' . $comprasSinFiltro);
-                \Log::info('Ventas sin filtro: ' . $ventasSinFiltro);
+                $comprasQuery->count() == 0 && $devComprasQuery->count() == 0 &&
+                $ventasQuery->count() == 0 && $devVentasQuery->count() == 0) {
 
                 return response()->json([
                     'success' => true,
@@ -923,21 +886,8 @@ class InventarioHistoricoController extends Controller
                         'inventario_final_total' => $inventarioActual->sum('existen'),
                         'merma_total' => 0,
                         'merma_porcentaje' => 0,
-                        'mensaje' => 'No hay movimientos (cargos, descargos, compras o ventas)',
-                        'debug' => [
-                            'cargos_sin_filtro' => $cargosSinFiltro,
-                            'descargos_sin_filtro' => $descargosSinFiltro,
-                            'compras_sin_filtro' => $comprasSinFiltro,
-                            'ventas_sin_filtro' => $ventasSinFiltro
-                        ]
-                    ],
-                    'debug' => [
-                        'cargos' => $debugCargos,
-                        'descargos' => $debugDescargos,
-                        'compras_count' => $comprasQuery->count(),
-                        'ventas_count' => $ventasQuery->count(),
-                        'inventario_inicial_count' => $inventarioAnterior->count(),
-                        'inventario_final_count' => $inventarioActual->count()
+                        'mensaje' => 'No hay movimientos registrados para esta fecha',
+                        'ultima_fecha_trabajada' => $ultimaFechaTrabajada ? Carbon::parse($ultimaFechaTrabajada)->format('d/m/Y') : null
                     ]
                 ]);
             }
@@ -987,15 +937,14 @@ class InventarioHistoricoController extends Controller
                 $cantidadActual = $actual ? $actual->existen : 0;
 
                 // SUMAR cantidades de movimientos
-                // Usar el campo Cantidad (con mayúscula) para Saitemopi
                 $totalCargos = $cargos->get($codprod, collect())->sum('Cantidad');
                 $totalDescargos = $descargos->get($codprod, collect())->sum('Cantidad');
 
-                // Para Saitemcom y Saitemfac usar cantidad (minúscula)
                 $totalCompras = $compras->get($codprod, collect())->sum('cantidad');
                 $totalDevCompras = $devolucionesCompras->get($codprod, collect())->sum('cantidad');
-                $totalVentas = $ventas->get($codprod, collect())->sum('cantidad');
-                $totalDevVentas = $devolucionesVentas->get($codprod, collect())->sum('cantidad');
+
+                $totalVentas = $ventas->get($codprod, collect())->sum('Cantidad');
+                $totalDevVentas = $devolucionesVentas->get($codprod, collect())->sum('Cantidad');
 
                 // Si no hay movimientos y el inventario es 0, saltar
                 if ($totalCargos == 0 && $totalDescargos == 0 &&
@@ -1005,8 +954,7 @@ class InventarioHistoricoController extends Controller
                     continue;
                 }
 
-                // Calcular lo que debería haber:
-                // Inicial + Cargos - Descargos + Compras - DevCompras - Ventas + DevVentas
+                // Calcular lo que debería haber
                 $deberiaHaber = $cantidadInicial
                     + $totalCargos
                     - $totalDescargos
@@ -1071,10 +1019,12 @@ class InventarioHistoricoController extends Controller
                 'resumen' => $resumen,
                 'data' => $datos,
                 'debug' => [
-                    'cargos' => $debugCargos,
-                    'descargos' => $debugDescargos,
+                    'cargos_count' => $cargosQuery->count(),
+                    'descargos_count' => $descargosQuery->count(),
                     'compras_count' => $comprasQuery->count(),
+                    'devoluciones_compras_count' => $devComprasQuery->count(),
                     'ventas_count' => $ventasQuery->count(),
+                    'devoluciones_ventas_count' => $devVentasQuery->count(),
                     'inventario_inicial_count' => $inventarioAnterior->count(),
                     'inventario_final_count' => $inventarioActual->count()
                 ]
