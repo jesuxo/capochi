@@ -248,7 +248,6 @@
             padding: 5px 15px;
             border-radius: 5px;
             border: 1px solid #dee2e6;
-            background: white;
             transition: all 0.2s ease;
         }
 
