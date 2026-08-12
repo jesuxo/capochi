@@ -923,7 +923,7 @@ class InventarioHistoricoController extends Controller
                     - $totalDescargos
                     + $totalCompras
                     - $totalDevCompras
-                    + $totalVentas
+                    - $totalVentas
                     + $totalDevVentas;
 
                 $diferencia = $deberiaHaber - $cantidadActual;
