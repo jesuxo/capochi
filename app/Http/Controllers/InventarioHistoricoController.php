@@ -776,8 +776,6 @@ class InventarioHistoricoController extends Controller
                             'total_productos' => 0,
                             'inventario_inicial_total' => 0,
                             'inventario_final_total' => 0,
-                            'merma_total' => 0,
-                            'merma_porcentaje' => 0,
                             'ultima_fecha_trabajada' => null,
                             'mensaje' => 'No se encontró sincronización para la fecha seleccionada'
                         ]
@@ -809,8 +807,6 @@ class InventarioHistoricoController extends Controller
                         'total_productos' => 0,
                         'inventario_inicial_total' => 0,
                         'inventario_final_total' => 0,
-                        'merma_total' => 0,
-                        'merma_porcentaje' => 0,
                         'ultima_fecha_trabajada' => $ultimaFechaTrabajada ? Carbon::parse($ultimaFechaTrabajada)->format('d/m/Y') : null,
                         'mensaje' => 'No hay sincronización para la fecha seleccionada'
                     ]
@@ -860,38 +856,6 @@ class InventarioHistoricoController extends Controller
             $devVentasData = $devVentasQuery->get();
             $devolucionesVentas = $devVentasData->groupBy('CodItem');
 
-            // ========== LOG DE DEPURACIÓN ==========
-            \Log::info('=== SEGUIMIENTO DIARIO ===');
-            \Log::info('Fecha: ' . $fecha);
-            \Log::info('Sucursal ID: ' . $sucursalId);
-            \Log::info('Cargos (O): ' . $cargosQuery->count());
-            \Log::info('Descargos (P): ' . $descargosQuery->count());
-            \Log::info('Compras (H): ' . $comprasQuery->count());
-            \Log::info('Dev Compras (I): ' . $devComprasQuery->count());
-            \Log::info('Ventas (A): ' . $ventasQuery->count());
-            \Log::info('Dev Ventas (B): ' . $devVentasQuery->count());
-
-            // Si no hay movimientos, mostrar mensaje
-            if ($cargosQuery->count() == 0 && $descargosQuery->count() == 0 &&
-                $comprasQuery->count() == 0 && $devComprasQuery->count() == 0 &&
-                $ventasQuery->count() == 0 && $devVentasQuery->count() == 0) {
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'No se encontraron movimientos para esta fecha',
-                    'data' => [],
-                    'resumen' => [
-                        'total_productos' => 0,
-                        'inventario_inicial_total' => $inventarioAnterior->sum('existen'),
-                        'inventario_final_total' => $inventarioActual->sum('existen'),
-                        'merma_total' => 0,
-                        'merma_porcentaje' => 0,
-                        'mensaje' => 'No hay movimientos registrados para esta fecha',
-                        'ultima_fecha_trabajada' => $ultimaFechaTrabajada ? Carbon::parse($ultimaFechaTrabajada)->format('d/m/Y') : null
-                    ]
-                ]);
-            }
-
             // Obtener todos los códigos de productos involucrados
             $todosCodigos = collect();
             $todosCodigos = $todosCodigos->merge($inventarioAnterior->keys());
@@ -915,8 +879,6 @@ class InventarioHistoricoController extends Controller
                 'total_devoluciones_ventas' => 0,
                 'inventario_inicial_total' => 0,
                 'inventario_final_total' => 0,
-                'merma_total' => 0,
-                'merma_porcentaje' => 0,
                 'ultima_fecha_trabajada' => $ultimaFechaTrabajada ? Carbon::parse($ultimaFechaTrabajada)->format('d/m/Y') : null,
                 'fecha_anterior_trabajada' => $ultimaFechaTrabajada ? Carbon::parse($ultimaFechaTrabajada)->format('d/m/Y') : 'Sin dato anterior',
                 'fecha_actual' => Carbon::parse($fecha)->format('d/m/Y'),
@@ -963,14 +925,7 @@ class InventarioHistoricoController extends Controller
                     - $totalVentas
                     + $totalDevVentas;
 
-                $merma = $deberiaHaber - $cantidadActual;
-
-                $mermaPorcentaje = 0;
-                if ($deberiaHaber > 0) {
-                    $mermaPorcentaje = round(($merma / $deberiaHaber) * 100, 2);
-                } elseif ($cantidadActual > 0 && $deberiaHaber == 0) {
-                    $mermaPorcentaje = -100;
-                }
+                $diferencia = $deberiaHaber - $cantidadActual;
 
                 $datos[] = [
                     'codprod' => $codprod,
@@ -985,8 +940,7 @@ class InventarioHistoricoController extends Controller
                     'ventas' => $totalVentas,
                     'devoluciones_ventas' => $totalDevVentas,
                     'deberia_haber' => $deberiaHaber,
-                    'merma' => $merma,
-                    'merma_porcentaje' => $mermaPorcentaje
+                    'diferencia' => $diferencia
                 ];
 
                 // Actualizar resumen
@@ -999,16 +953,11 @@ class InventarioHistoricoController extends Controller
                 $resumen['total_devoluciones_ventas'] += $totalDevVentas;
                 $resumen['inventario_inicial_total'] += $cantidadInicial;
                 $resumen['inventario_final_total'] += $cantidadActual;
-                $resumen['merma_total'] += $merma;
             }
 
-            $resumen['merma_porcentaje'] = $resumen['inventario_inicial_total'] > 0
-                ? round(($resumen['merma_total'] / $resumen['inventario_inicial_total']) * 100, 2)
-                : 0;
-
-            // Ordenar por merma (mayor a menor)
+            // Ordenar por diferencia (mayor a menor)
             usort($datos, function($a, $b) {
-                return abs($b['merma']) - abs($a['merma']);
+                return abs($b['diferencia']) - abs($a['diferencia']);
             });
 
             return response()->json([
@@ -1017,17 +966,7 @@ class InventarioHistoricoController extends Controller
                 'fecha_formateada' => Carbon::parse($fecha)->format('d/m/Y'),
                 'sucursal' => $sucursal->descrip,
                 'resumen' => $resumen,
-                'data' => $datos,
-                'debug' => [
-                    'cargos_count' => $cargosQuery->count(),
-                    'descargos_count' => $descargosQuery->count(),
-                    'compras_count' => $comprasQuery->count(),
-                    'devoluciones_compras_count' => $devComprasQuery->count(),
-                    'ventas_count' => $ventasQuery->count(),
-                    'devoluciones_ventas_count' => $devVentasQuery->count(),
-                    'inventario_inicial_count' => $inventarioAnterior->count(),
-                    'inventario_final_count' => $inventarioActual->count()
-                ]
+                'data' => $datos
             ]);
 
         } catch (\Exception $e) {
@@ -1058,7 +997,6 @@ class InventarioHistoricoController extends Controller
                 ]);
             }
 
-            // Obtener información del producto
             $producto = Saprod::where('codprod', $codprod)
                 ->where('comercial', $comercialid)
                 ->with('instancia')
@@ -1071,10 +1009,9 @@ class InventarioHistoricoController extends Controller
                 ]);
             }
 
-            // Detalle de movimientos
             $detalle = [];
 
-            // Cargos del día (TipoOpI = 'O')
+            // ========== CARGOS ==========
             $cargos = Saitemopi::where('fk_sucursal', $sucursalId)
                 ->whereDate('FechaE', $fecha)
                 ->where('CodItem', $codprod)
@@ -1092,7 +1029,7 @@ class InventarioHistoricoController extends Controller
                 ];
             }
 
-            // Descargos del día (TipoOpI = 'P')
+            // ========== DESCARGOS ==========
             $descargos = Saitemopi::where('fk_sucursal', $sucursalId)
                 ->whereDate('FechaE', $fecha)
                 ->where('CodItem', $codprod)
@@ -1110,7 +1047,7 @@ class InventarioHistoricoController extends Controller
                 ];
             }
 
-            // Compras del día
+            // ========== COMPRAS (AGREGADAS) ==========
             $compras = Saitemcom::where('fk_sucursal', $sucursalId)
                 ->whereDate('fechae', $fecha)
                 ->where('coditem', $codprod)
@@ -1129,26 +1066,7 @@ class InventarioHistoricoController extends Controller
                 ];
             }
 
-            // Ventas del día
-            $ventas = Saitemfac::where('fk_sucursal', $sucursalId)
-                ->whereDate('fechae', $fecha)
-                ->where('coditem', $codprod)
-                ->where('tipofac', 'A')
-                ->with(['factura'])
-                ->get();
-
-            foreach ($ventas as $venta) {
-                $detalle[] = [
-                    'tipo' => 'VENTA',
-                    'fecha' => $venta->fechae,
-                    'cantidad' => $venta->cantidad,
-                    'referencia' => $venta->factura->numerod ?? 'N/A',
-                    'usuario' => $venta->factura->codusua ?? 'N/A',
-                    'observacion' => $venta->factura->notas1 ?? ''
-                ];
-            }
-
-            // Devoluciones de compra
+            // ========== DEVOLUCIONES DE COMPRA ==========
             $devCompras = Saitemcom::where('fk_sucursal', $sucursalId)
                 ->whereDate('fechae', $fecha)
                 ->where('coditem', $codprod)
@@ -1167,22 +1085,92 @@ class InventarioHistoricoController extends Controller
                 ];
             }
 
-            // Devoluciones de venta
-            $devVentas = Saitemfac::where('fk_sucursal', $sucursalId)
-                ->whereDate('fechae', $fecha)
-                ->where('coditem', $codprod)
-                ->where('tipofac', 'B')
+            // ========== VENTAS (AGRUPADAS POR FACTURA) ==========
+            $ventas = Saitemfac::where('fk_sucursal', $sucursalId)
+                ->whereDate('FechaE', $fecha)
+                ->where('CodItem', $codprod)
+                ->where('TipoFac', 'A')
                 ->with(['factura'])
                 ->get();
 
+            // Agrupar ventas por número de factura
+            $ventasAgrupadas = [];
+            foreach ($ventas as $venta) {
+                $key = $venta->NumeroD;
+                if (!isset($ventasAgrupadas[$key])) {
+                    $ventasAgrupadas[$key] = [
+                        'tipo' => 'VENTA',
+                        'fecha' => $venta->FechaE,
+                        'cantidad' => 0,
+                        'referencia' => $venta->factura->NumeroD ?? 'N/A',
+                        'usuario' => $venta->factura->CodUsua ?? 'N/A',
+                        'observacion' => $venta->factura->Notas1 ?? '',
+                        'items' => []
+                    ];
+                }
+                $ventasAgrupadas[$key]['cantidad'] += $venta->Cantidad;
+                $ventasAgrupadas[$key]['items'][] = $venta->Descrip1 ?? 'Sin descripción';
+            }
+
+            // Agregar ventas agrupadas al detalle
+            foreach ($ventasAgrupadas as $venta) {
+                // Mostrar los productos vendidos en la misma factura
+                $itemsTexto = implode(' | ', array_slice($venta['items'], 0, 3));
+                if (count($venta['items']) > 3) {
+                    $itemsTexto .= ' ... (' . count($venta['items']) . ' productos)';
+                }
+
+                $detalle[] = [
+                    'tipo' => 'VENTA',
+                    'fecha' => $venta['fecha'],
+                    'cantidad' => $venta['cantidad'],
+                    'referencia' => $venta['referencia'],
+                    'usuario' => $venta['usuario'],
+                    'observacion' => $venta['observacion'],
+                    'items' => $itemsTexto
+                ];
+            }
+
+            // ========== DEVOLUCIONES DE VENTA (AGRUPADAS) ==========
+            $devVentas = Saitemfac::where('fk_sucursal', $sucursalId)
+                ->whereDate('FechaE', $fecha)
+                ->where('CodItem', $codprod)
+                ->where('TipoFac', 'B')
+                ->with(['factura'])
+                ->get();
+
+            $devVentasAgrupadas = [];
             foreach ($devVentas as $devVenta) {
+                $key = $devVenta->NumeroD;
+                if (!isset($devVentasAgrupadas[$key])) {
+                    $devVentasAgrupadas[$key] = [
+                        'tipo' => 'DEVOLUCIÓN VENTA',
+                        'fecha' => $devVenta->FechaE,
+                        'cantidad' => 0,
+                        'referencia' => $devVenta->factura->NumeroD ?? 'N/A',
+                        'usuario' => $devVenta->factura->CodUsua ?? 'N/A',
+                        'observacion' => $devVenta->factura->Notas1 ?? '',
+                        'items' => []
+                    ];
+                }
+                $devVentasAgrupadas[$key]['cantidad'] += $devVenta->Cantidad;
+                $devVentasAgrupadas[$key]['items'][] = $devVenta->Descrip1 ?? 'Sin descripción';
+            }
+
+            foreach ($devVentasAgrupadas as $devVenta) {
+                $itemsTexto = implode(' | ', array_slice($devVenta['items'], 0, 3));
+                if (count($devVenta['items']) > 3) {
+                    $itemsTexto .= ' ... (' . count($devVenta['items']) . ' productos)';
+                }
+
                 $detalle[] = [
                     'tipo' => 'DEVOLUCIÓN VENTA',
-                    'fecha' => $devVenta->fechae,
-                    'cantidad' => $devVenta->cantidad,
-                    'referencia' => $devVenta->factura->numerod ?? 'N/A',
-                    'usuario' => $devVenta->factura->codusua ?? 'N/A',
-                    'observacion' => $devVenta->factura->notas1 ?? ''
+                    'fecha' => $devVenta['fecha'],
+                    'cantidad' => $devVenta['cantidad'],
+                    'referencia' => $devVenta['referencia'],
+                    'usuario' => $devVenta['usuario'],
+                    'observacion' => $devVenta['observacion'],
+                    'items' => $itemsTexto
                 ];
             }
 

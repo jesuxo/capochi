@@ -340,55 +340,6 @@
             `;
                 }
 
-                // Mostrar información de depuración si existe
-                if (data.debug) {
-                    html += `
-                <div class="mt-3">
-                    <button class="btn btn-sm btn-outline-secondary" onclick="toggleDebug()">
-                        <i class="bi bi-bug me-1"></i> Ver información de depuración
-                    </button>
-                    <div id="debugContent" style="display: none; margin-top: 10px; text-align: left;">
-                        <div class="debug-container">
-                            <h6>Información de depuración:</h6>
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <span class="badge bg-primary">Cargos: ${data.debug.cargos?.count || 0}</span>
-                                </div>
-                                <div class="col-md-3">
-                                    <span class="badge bg-secondary">Descargos: ${data.debug.descargos?.count || 0}</span>
-                                </div>
-                                <div class="col-md-3">
-                                    <span class="badge bg-success">Compras: ${data.debug.compras_count || 0}</span>
-                                </div>
-                                <div class="col-md-3">
-                                    <span class="badge bg-danger">Ventas: ${data.debug.ventas_count || 0}</span>
-                                </div>
-                            </div>
-                            ${data.debug.cargos?.sample ? `
-                                <hr>
-                                <h6>Muestra de Cargos:</h6>
-                                <pre>${JSON.stringify(data.debug.cargos.sample, null, 2)}</pre>
-                            ` : ''}
-                            ${data.debug.descargos?.sample ? `
-                                <h6>Muestra de Descargos:</h6>
-                                <pre>${JSON.stringify(data.debug.descargos.sample, null, 2)}</pre>
-                            ` : ''}
-                            ${data.resumen?.debug ? `
-                                <hr>
-                                <h6>Datos sin filtro de sucursal:</h6>
-                                <ul>
-                                    <li>Cargos: ${data.resumen.debug.cargos_sin_filtro || 0}</li>
-                                    <li>Descargos: ${data.resumen.debug.descargos_sin_filtro || 0}</li>
-                                    <li>Compras: ${data.resumen.debug.compras_sin_filtro || 0}</li>
-                                    <li>Ventas: ${data.resumen.debug.ventas_sin_filtro || 0}</li>
-                                </ul>
-                            ` : ''}
-                        </div>
-                    </div>
-                </div>
-            `;
-                }
-
                 html += `</div>`;
                 $('#seguimientoContent').html(html);
                 return;
@@ -401,30 +352,20 @@
         <!-- Resumen General -->
         <div class="resumen-general">
             <div class="row">
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <div class="stat-number">${data.resumen.total_productos}</div>
                     <div class="stat-label">Productos</div>
                 </div>
-                <div class="col-md-2">
-                    <div class="stat-number">${numberFormat(data.resumen.inventario_inicial_total, 0)}</div>
+                <div class="col-md-3">
+                    <div class="stat-number">${numberFormat(data.resumen.inventario_inicial_total, 3)}</div>
                     <div class="stat-label">Inv. Inicial (${fechaAnteriorMostrar})</div>
                 </div>
-                <div class="col-md-2">
-                    <div class="stat-number">${numberFormat(data.resumen.inventario_final_total, 0)}</div>
+                <div class="col-md-3">
+                    <div class="stat-number">${numberFormat(data.resumen.inventario_final_total, 3)}</div>
                     <div class="stat-label">Inv. Final (${fechaActualMostrar})</div>
                 </div>
-                <div class="col-md-2">
-                    <div class="stat-number" style="color: ${data.resumen.merma_total >= 0 ? '#ffd700' : '#28a745'}">
-                        ${data.resumen.merma_total >= 0 ? '+' : ''}${numberFormat(data.resumen.merma_total, 0)}
-                    </div>
-                    <div class="stat-label">Merma</div>
-                </div>
-                <div class="col-md-2">
-                    <div class="stat-number">${data.resumen.merma_porcentaje}%</div>
-                    <div class="stat-label">% Merma</div>
-                </div>
-                <div class="col-md-2">
-                    <div class="stat-number">${numberFormat(data.resumen.total_cargos + data.resumen.total_compras, 0)}</div>
+                <div class="col-md-3">
+                    <div class="stat-number">${numberFormat(data.resumen.total_compras + data.resumen.total_cargos, 3)}</div>
                     <div class="stat-label">Entradas</div>
                 </div>
             </div>
@@ -434,10 +375,10 @@
                         <i class="bi bi-info-circle me-1"></i>
                         ${data.sucursal} - Período: ${fechaAnteriorMostrar} → ${fechaActualMostrar}
                         ${data.resumen.dias_sin_sincronizar > 1 ? `<span class="badge bg-warning text-dark ms-2">⚠️ ${data.resumen.dias_sin_sincronizar} días sin sincronizar</span>` : ''}
-                        <span class="badge bg-light text-dark ms-2">Cargos: ${numberFormat(data.resumen.total_cargos, 0)}</span>
-                        <span class="badge bg-light text-dark ms-1">Descargos: ${numberFormat(data.resumen.total_descargos, 0)}</span>
-                        <span class="badge bg-light text-dark ms-1">Compras: ${numberFormat(data.resumen.total_compras, 0)}</span>
-                        <span class="badge bg-light text-dark ms-1">Ventas: ${numberFormat(data.resumen.total_ventas, 0)}</span>
+                        <span class="badge bg-primary ms-2">Cargos: ${numberFormat(data.resumen.total_cargos, 3)}</span>
+                        <span class="badge bg-warning ms-1">Descargos: ${numberFormat(data.resumen.total_descargos, 3)}</span>
+                        <span class="badge bg-success ms-1">Compras: ${numberFormat(data.resumen.total_compras, 3)}</span>
+                        <span class="badge bg-danger ms-1">Ventas: ${numberFormat(data.resumen.total_ventas, 3)}</span>
                     </small>
                 </div>
             </div>
@@ -473,8 +414,7 @@
                         <th style="min-width: 70px; text-align: center;" class="text-danger">Ventas (-)</th>
                         <th style="min-width: 70px; text-align: center;" title="Inventario que debería haber según los movimientos">Debe Haber</th>
                         <th style="min-width: 70px; text-align: center;" title="Inventario real de la fecha actual">Inv. Final</th>
-                        <th style="min-width: 80px; text-align: center;">Merma</th>
-                        <th style="min-width: 70px; text-align: center;">% Merma</th>
+                        <th style="min-width: 80px; text-align: center;">Diferencia</th>
                         <th style="min-width: 50px; text-align: center;">Acción</th>
                     </tr>
                 </thead>
@@ -482,56 +422,28 @@
     `;
 
             data.data.forEach(item => {
-                let mermaClass = '';
-                let mermaTexto = '';
-                let mermaColor = '';
-                let absMerma = Math.abs(item.merma);
+                let diffClass = '';
+                let diffColor = '';
+                let diffTexto = '';
+                let absDiff = Math.abs(item.diferencia);
 
-                if (item.merma > 0) {
-                    if (absMerma > 100) {
-                        mermaClass = 'merma-alta';
-                        mermaColor = '#dc3545';
-                    } else if (absMerma > 20) {
-                        mermaClass = 'merma-media';
-                        mermaColor = '#ffc107';
-                    } else {
-                        mermaClass = 'merma-baja';
-                        mermaColor = '#75a373';
-                    }
-                    mermaTexto = `-${numberFormat(absMerma, 0)}`;
-                } else if (item.merma < 0) {
-                    mermaClass = 'merma-positiva';
-                    mermaColor = '#28a745';
-                    mermaTexto = `+${numberFormat(absMerma, 0)}`;
+                if (item.diferencia > 0) {
+                    diffClass = 'merma-alta';
+                    diffColor = '#dc3545';
+                    diffTexto = `-${numberFormat(absDiff, 3)}`;
+                } else if (item.diferencia < 0) {
+                    diffClass = 'merma-positiva';
+                    diffColor = '#28a745';
+                    diffTexto = `+${numberFormat(absDiff, 3)}`;
                 } else {
-                    mermaClass = 'merma-baja';
-                    mermaColor = '#6c757d';
-                    mermaTexto = '0';
+                    diffClass = 'merma-baja';
+                    diffColor = '#6c757d';
+                    diffTexto = '0';
                 }
 
-                let rowClass = item.merma > 100 ? 'table-danger' : '';
-                if (item.merma > 20 && item.merma <= 100) {
+                let rowClass = item.diferencia > 100 ? 'table-danger' : '';
+                if (item.diferencia > 20 && item.diferencia <= 100) {
                     rowClass = 'table-warning';
-                }
-
-                let mermaPorcClass = 'merma-baja';
-                let mermaPorcColor = '#6c757d';
-                let absPorc = Math.abs(item.merma_porcentaje);
-
-                if (item.merma_porcentaje > 0) {
-                    if (absPorc > 10) {
-                        mermaPorcClass = 'merma-alta';
-                        mermaPorcColor = '#dc3545';
-                    } else if (absPorc > 5) {
-                        mermaPorcClass = 'merma-media';
-                        mermaPorcColor = '#ffc107';
-                    } else {
-                        mermaPorcClass = 'merma-baja';
-                        mermaPorcColor = '#75a373';
-                    }
-                } else if (item.merma_porcentaje < 0) {
-                    mermaPorcClass = 'merma-positiva';
-                    mermaPorcColor = '#28a745';
                 }
 
                 html += `
@@ -539,21 +451,16 @@
                 <td><strong>${item.codprod}</strong></td>
                 <td>${item.descrip}</td>
                 <td><small>${item.categoria}</small></td>
-                <td class="text-center fw-bold">${numberFormat(item.inventario_inicial, 0)}</td>
-                <td class="text-center text-primary">${item.cargos > 0 ? '+' + numberFormat(item.cargos, 0) : '-'}</td>
-                <td class="text-center text-warning">${item.descargos > 0 ? '-' + numberFormat(item.descargos, 0) : '-'}</td>
-                <td class="text-center text-success">${item.compras > 0 ? '+' + numberFormat(item.compras, 0) : '-'}</td>
-                <td class="text-center text-danger">${item.ventas > 0 ? '-' + numberFormat(item.ventas, 0) : '-'}</td>
-                <td class="text-center fw-bold">${numberFormat(item.deberia_haber, 0)}</td>
-                <td class="text-center fw-bold">${numberFormat(item.inventario_final, 0)}</td>
+                <td class="text-center fw-bold">${numberFormat(item.inventario_inicial, 3)}</td>
+                <td class="text-center text-primary">${item.cargos > 0 ? '+' + numberFormat(item.cargos, 3) : '-'}</td>
+                <td class="text-center text-warning">${item.descargos > 0 ? '-' + numberFormat(item.descargos, 3) : '-'}</td>
+                <td class="text-center text-success">${item.compras > 0 ? '+' + numberFormat(item.compras, 3) : '-'}</td>
+                <td class="text-center text-danger">${item.ventas > 0 ? '-' + numberFormat(item.ventas, 3) : '-'}</td>
+                <td class="text-center fw-bold">${numberFormat(item.deberia_haber, 3)}</td>
+                <td class="text-center fw-bold">${numberFormat(item.inventario_final, 3)}</td>
                 <td class="text-center">
-                    <span class="merma-badge ${mermaClass}" style="color: ${item.merma <= 0 ? 'white' : 'black'}; background-color: ${mermaColor};">
-                        ${mermaTexto}
-                    </span>
-                </td>
-                <td class="text-center">
-                    <span class="merma-badge ${mermaPorcClass}" style="color: ${item.merma_porcentaje <= 0 ? 'white' : 'black'}; background-color: ${mermaPorcColor};">
-                        ${item.merma_porcentaje}%
+                    <span class="merma-badge ${diffClass}" style="color: ${item.diferencia <= 0 ? 'white' : 'black'}; background-color: ${diffColor};">
+                        ${diffTexto}
                     </span>
                 </td>
                 <td class="text-center">
@@ -574,28 +481,27 @@
                 let totalVentas = data.data.reduce((sum, item) => sum + item.ventas, 0);
                 let totalDebeHaber = data.data.reduce((sum, item) => sum + item.deberia_haber, 0);
                 let totalFinal = data.data.reduce((sum, item) => sum + item.inventario_final, 0);
-                let totalMerma = data.data.reduce((sum, item) => sum + item.merma, 0);
+                let totalDiferencia = data.data.reduce((sum, item) => sum + item.diferencia, 0);
 
-                let mermaTotalClass = totalMerma > 100 ? 'merma-alta' : (totalMerma > 20 ? 'merma-media' : 'merma-baja');
-                let mermaTotalColor = totalMerma > 100 ? '#dc3545' : (totalMerma > 20 ? '#ffc107' : '#75a373');
-                let mermaTotalTexto = totalMerma > 0 ? `-${numberFormat(Math.abs(totalMerma), 0)}` : (totalMerma < 0 ? `+${numberFormat(Math.abs(totalMerma), 0)}` : '0');
+                let diffTotalClass = totalDiferencia > 100 ? 'merma-alta' : (totalDiferencia > 20 ? 'merma-media' : 'merma-baja');
+                let diffTotalColor = totalDiferencia > 100 ? '#dc3545' : (totalDiferencia > 20 ? '#ffc107' : '#75a373');
+                let diffTotalTexto = totalDiferencia > 0 ? `-${numberFormat(Math.abs(totalDiferencia), 3)}` : (totalDiferencia < 0 ? `+${numberFormat(Math.abs(totalDiferencia), 3)}` : '0');
 
                 html += `
             <tr class="table-primary fw-bold">
                 <td colspan="3" class="text-center">TOTALES</td>
-                <td class="text-center">${numberFormat(totalInicial, 0)}</td>
-                <td class="text-center text-primary">${totalCargos > 0 ? '+' + numberFormat(totalCargos, 0) : '-'}</td>
-                <td class="text-center text-warning">${totalDescargos > 0 ? '-' + numberFormat(totalDescargos, 0) : '-'}</td>
-                <td class="text-center text-success">${totalCompras > 0 ? '+' + numberFormat(totalCompras, 0) : '-'}</td>
-                <td class="text-center text-danger">${totalVentas > 0 ? '-' + numberFormat(totalVentas, 0) : '-'}</td>
-                <td class="text-center">${numberFormat(totalDebeHaber, 0)}</td>
-                <td class="text-center">${numberFormat(totalFinal, 0)}</td>
+                <td class="text-center">${numberFormat(totalInicial, 3)}</td>
+                <td class="text-center text-primary">${totalCargos > 0 ? '+' + numberFormat(totalCargos, 3) : '-'}</td>
+                <td class="text-center text-warning">${totalDescargos > 0 ? '-' + numberFormat(totalDescargos, 3) : '-'}</td>
+                <td class="text-center text-success">${totalCompras > 0 ? '+' + numberFormat(totalCompras, 3) : '-'}</td>
+                <td class="text-center text-danger">${totalVentas > 0 ? '-' + numberFormat(totalVentas, 3) : '-'}</td>
+                <td class="text-center">${numberFormat(totalDebeHaber, 3)}</td>
+                <td class="text-center">${numberFormat(totalFinal, 3)}</td>
                 <td class="text-center">
-                    <span class="merma-badge ${mermaTotalClass}" style="background-color: ${mermaTotalColor}; color: ${totalMerma <= 0 ? 'white' : 'black'};">
-                        ${mermaTotalTexto}
+                    <span class="merma-badge ${diffTotalClass}" style="background-color: ${diffTotalColor}; color: ${totalDiferencia <= 0 ? 'white' : 'black'};">
+                        ${diffTotalTexto}
                     </span>
                 </td>
-                <td class="text-center">${data.resumen.merma_porcentaje}%</td>
                 <td></td>
             </tr>
         `;
@@ -606,51 +512,6 @@
             </table>
         </div>
     `;
-
-            // Información de depuración
-            if (data.debug) {
-                html += `
-            <div class="mt-3">
-                <button class="btn btn-sm btn-outline-secondary" onclick="toggleDebug()">
-                    <i class="bi bi-bug me-1"></i> Mostrar/Ocultar Depuración
-                </button>
-                <div id="debugContent" style="display: none; margin-top: 10px;">
-                    <div class="debug-container">
-                        <h6>Movimientos encontrados:</h6>
-                        <div class="row">
-                            <div class="col-md-2">
-                                <span class="badge bg-primary">Cargos: ${data.debug.cargos?.count || 0}</span>
-                            </div>
-                            <div class="col-md-2">
-                                <span class="badge bg-secondary">Descargos: ${data.debug.descargos?.count || 0}</span>
-                            </div>
-                            <div class="col-md-2">
-                                <span class="badge bg-success">Compras: ${data.debug.compras_count || 0}</span>
-                            </div>
-                            <div class="col-md-2">
-                                <span class="badge bg-danger">Ventas: ${data.debug.ventas_count || 0}</span>
-                            </div>
-                            <div class="col-md-2">
-                                <span class="badge bg-info">Inv. Inicial: ${data.debug.inventario_inicial_count || 0}</span>
-                            </div>
-                            <div class="col-md-2">
-                                <span class="badge bg-dark">Inv. Final: ${data.debug.inventario_final_count || 0}</span>
-                            </div>
-                        </div>
-                        ${data.debug.cargos?.sample ? `
-                            <hr>
-                            <h6>Muestra de Cargos:</h6>
-                            <pre>${JSON.stringify(data.debug.cargos.sample, null, 2)}</pre>
-                        ` : ''}
-                        ${data.debug.descargos?.sample ? `
-                            <h6>Muestra de Descargos:</h6>
-                            <pre>${JSON.stringify(data.debug.descargos.sample, null, 2)}</pre>
-                        ` : ''}
-                    </div>
-                </div>
-            </div>
-        `;
-            }
 
             // Pie de página
             html += `
@@ -802,7 +663,7 @@
                     }
 
                     let cantidadClass = item.cantidad > 0 ? 'text-success' : 'text-danger';
-                    let cantidadTexto = item.cantidad > 0 ? `+${numberFormat(item.cantidad, 0)}` : numberFormat(item.cantidad, 0);
+                    let cantidadTexto = item.cantidad > 0 ? `+${numberFormat(item.cantidad, 3)}` : numberFormat(item.cantidad, 3);
 
                     html += `
                 <div class="list-group-item ${tipoClass}">
@@ -826,6 +687,7 @@
                         </div>
                     </div>
                     ${item.observacion ? `<div class="mt-1"><small class="text-muted"><i class="bi bi-chat me-1"></i>${item.observacion}</small></div>` : ''}
+                    ${item.items ? `<div class="mt-1"><small class="text-muted"><i class="bi bi-box me-1"></i>${item.items}</small></div>` : ''}
                 </div>
             `;
                 });
