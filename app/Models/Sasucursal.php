@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -12,6 +13,10 @@ class Sasucursal extends Model
 
     protected $table    = 'sasucursal';
     protected $fillable = [ 'descrip', 'direccion'];
+
+    protected $casts = [
+        'dia_descanso' => 'integer',
+    ];
 
     public function saprodsucursales (){
         return $this->hasMany(Saprodsucursal::class, 'fk_sucursal', 'id');
@@ -42,5 +47,14 @@ class Sasucursal extends Model
             'fk_sucursal',
             'fk_user'
         )->withTimestamps();
+    }
+
+    public function esDiaDescanso($fecha)
+    {
+        if ($this->dia_descanso === null) {
+            // Si no tiene definido, asumir Domingo como descanso
+            return Carbon::parse($fecha)->dayOfWeek === 0;
+        }
+        return Carbon::parse($fecha)->dayOfWeek === $this->dia_descanso;
     }
 }

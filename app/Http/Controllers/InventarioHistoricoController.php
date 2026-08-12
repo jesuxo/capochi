@@ -120,37 +120,48 @@ class InventarioHistoricoController extends Controller
 
             // Construir matriz de datos
             $data = [];
-            $diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            $diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            $diasSemanaCorto = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
             foreach ($sucursales as $sucursal) {
+                $diaDescanso = $sucursal->dia_descanso ?? 0; // 0 = Domingo por defecto
+                $nombreDiaDescanso = $diasSemana[$diaDescanso];
+
                 $sucursalData = [
                     'id' => $sucursal->id,
                     'nombre' => $sucursal->descrip,
+                    'dia_descanso' => $diaDescanso,
+                    'nombre_dia_descanso' => $nombreDiaDescanso,
                     'dias' => [],
                     'totales' => [
                         'dias_habiles' => 0,
                         'dias_sincronizados' => 0,
+                        'dias_descanso' => 0,
                         'cumplimiento' => 0
                     ]
                 ];
 
                 $diasHabiles = 0;
                 $diasSincronizados = 0;
+                $diasDescanso = 0;
 
                 $syncsPorSucursal = $sincronizaciones->get($sucursal->id, collect())->keyBy('fecha');
 
                 foreach ($diasDelMes as $fechaStr) {
                     $fechaObj = Carbon::parse($fechaStr);
                     $diaNumero = $fechaObj->format('d');
-                    $diaSemana = $diasSemana[$fechaObj->dayOfWeek];
-                    $esDiaHabil = $fechaObj->isWeekday(); // Lunes a Viernes
+                    $diaSemana = $diasSemanaCorto[$fechaObj->dayOfWeek];
+                    $esDiaDescanso = $fechaObj->dayOfWeek === $diaDescanso;
+                    $esDiaHabil = !$esDiaDescanso;
 
                     // Verificar si hay sincronización
                     $tieneSync = $syncsPorSucursal->has($fechaStr);
                     $productosSync = $tieneSync ? $syncsPorSucursal[$fechaStr]->total_productos : 0;
 
                     // Contabilizar días
-                    if ($esDiaHabil) {
+                    if ($esDiaDescanso) {
+                        $diasDescanso++;
+                    } else {
                         $diasHabiles++;
                         if ($tieneSync) {
                             $diasSincronizados++;
@@ -162,6 +173,7 @@ class InventarioHistoricoController extends Controller
                         'dia_numero' => $diaNumero,
                         'dia_semana' => $diaSemana,
                         'es_dia_habilitado' => $esDiaHabil,
+                        'es_dia_descanso' => $esDiaDescanso,
                         'tiene_sincronizacion' => $tieneSync,
                         'productos_sincronizados' => $productosSync
                     ];
@@ -172,6 +184,7 @@ class InventarioHistoricoController extends Controller
                 $sucursalData['totales'] = [
                     'dias_habiles' => $diasHabiles,
                     'dias_sincronizados' => $diasSincronizados,
+                    'dias_descanso' => $diasDescanso,
                     'cumplimiento' => $cumplimiento,
                     'dias_faltantes' => $diasHabiles - $diasSincronizados
                 ];

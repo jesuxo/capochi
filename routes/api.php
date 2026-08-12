@@ -94,11 +94,6 @@ Route::group([ 'middleware' => 'check.user'], function () {
         Route::post('saacxc/sync/descuento/descargado', 'descargadoDescuento');
     });
 
-
-    Route::controller(\App\Http\Controllers\SaeprdController::class)->group(function () {
-        Route::post('saeprd/sync/doc', 'sync');
-    });
-
     Route::resource('saesta', \App\Http\Controllers\SaestaController::class);
     Route::resource('sucursal', \App\Http\Controllers\SasucursalController::class);
 
