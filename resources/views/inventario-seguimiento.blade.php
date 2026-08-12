@@ -351,38 +351,48 @@
             let html = `
         <!-- Resumen General -->
         <div class="resumen-general">
-            <div class="row">
-                <div class="col-md-3">
-                    <div class="stat-number">${data.resumen.total_productos}</div>
-                    <div class="stat-label">Productos</div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-number">${numberFormat(data.resumen.inventario_inicial_total, 3)}</div>
-                    <div class="stat-label">Inv. Inicial (${fechaAnteriorMostrar})</div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-number">${numberFormat(data.resumen.inventario_final_total, 3)}</div>
-                    <div class="stat-label">Inv. Final (${fechaActualMostrar})</div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-number">${numberFormat(data.resumen.total_compras + data.resumen.total_cargos, 3)}</div>
-                    <div class="stat-label">Entradas</div>
-                </div>
+        <div class="row">
+            <div class="col-md-2">
+                <div class="stat-number">${data.resumen.total_productos}</div>
+                <div class="stat-label">Productos</div>
             </div>
-            <div class="row mt-2">
-                <div class="col-12">
-                    <small class="opacity-75">
-                        <i class="bi bi-info-circle me-1"></i>
-                        ${data.sucursal} - Período: ${fechaAnteriorMostrar} → ${fechaActualMostrar}
-                        ${data.resumen.dias_sin_sincronizar > 1 ? `<span class="badge bg-warning text-dark ms-2">⚠️ ${data.resumen.dias_sin_sincronizar} días sin sincronizar</span>` : ''}
-                        <span class="badge bg-primary ms-2">Cargos: ${numberFormat(data.resumen.total_cargos, 3)}</span>
-                        <span class="badge bg-warning ms-1">Descargos: ${numberFormat(data.resumen.total_descargos, 3)}</span>
-                        <span class="badge bg-success ms-1">Compras: ${numberFormat(data.resumen.total_compras, 3)}</span>
-                        <span class="badge bg-danger ms-1">Ventas: ${numberFormat(data.resumen.total_ventas, 3)}</span>
-                    </small>
+            <div class="col-md-2">
+                <div class="stat-number">${numberFormat(data.resumen.inventario_inicial_total, 3)}</div>
+                <div class="stat-label">Inv. Inicial (${fechaAnteriorMostrar})</div>
+            </div>
+            <div class="col-md-2">
+                <div class="stat-number">${numberFormat(data.resumen.inventario_final_total, 3)}</div>
+                <div class="stat-label">Inv. Final (${fechaActualMostrar})</div>
+            </div>
+            <div class="col-md-2">
+                <div class="stat-number" style="color: ${data.resumen.diferencia_total >= 0 ? '#ffd700' : '#28a745'}">
+                    ${data.resumen.diferencia_total >= 0 ? '+' : ''}${numberFormat(data.resumen.diferencia_total, 3)}
                 </div>
+                <div class="stat-label">Diferencia</div>
+            </div>
+            <div class="col-md-2">
+                <div class="stat-number">${numberFormat(data.resumen.total_compras + data.resumen.total_cargos, 3)}</div>
+                <div class="stat-label">Entradas</div>
+            </div>
+            <div class="col-md-2">
+                <div class="stat-number">${numberFormat(data.resumen.total_ventas + data.resumen.total_descargos, 3)}</div>
+                <div class="stat-label">Salidas</div>
             </div>
         </div>
+        <div class="row mt-2">
+            <div class="col-12">
+                <small class="opacity-75">
+                    <i class="bi bi-info-circle me-1"></i>
+                    ${data.sucursal} - Período: ${fechaAnteriorMostrar} → ${fechaActualMostrar}
+                    ${data.resumen.dias_sin_sincronizar > 1 ? `<span class="badge bg-warning text-dark ms-2">⚠️ ${data.resumen.dias_sin_sincronizar} días sin sincronizar</span>` : ''}
+                    <span class="badge bg-primary ms-2">Cargos: ${numberFormat(data.resumen.total_cargos, 3)}</span>
+                    <span class="badge bg-warning ms-1">Descargos: ${numberFormat(data.resumen.total_descargos, 3)}</span>
+                    <span class="badge bg-success ms-1">Compras: ${numberFormat(data.resumen.total_compras, 3)}</span>
+                    <span class="badge bg-danger ms-1">Ventas: ${numberFormat(data.resumen.total_ventas, 3)}</span>
+                </small>
+            </div>
+        </div>
+    </div>
     `;
 
             // Advertencia por días sin sincronizar
@@ -398,7 +408,7 @@
         `;
             }
 
-            // Tabla de seguimiento
+            // Tabla de seguimiento - SIN columnas de Merma
             html += `
         <div class="scroll-horizontal">
             <table class="table table-bordered table-sm tabla-seguimiento">
@@ -753,10 +763,10 @@
 
             let data = [];
 
-            // Cabecera
+            // Cabecera - SIN columnas de Merma
             data.push([
                 'Código', 'Producto', 'Categoría', 'Inv. Inicial', 'Cargos', 'Descargos',
-                'Compras', 'Ventas', 'Debe Haber', 'Inv. Final', 'Merma', '% Merma'
+                'Compras', 'Ventas', 'Debe Haber', 'Inv. Final', 'Diferencia'
             ]);
 
             // Datos
@@ -772,8 +782,7 @@
                     item.ventas,
                     item.deberia_haber,
                     item.inventario_final,
-                    item.merma,
-                    item.merma_porcentaje
+                    item.diferencia
                 ]);
             });
 

@@ -879,6 +879,7 @@ class InventarioHistoricoController extends Controller
                 'total_devoluciones_ventas' => 0,
                 'inventario_inicial_total' => 0,
                 'inventario_final_total' => 0,
+                'diferencia_total' => 0,
                 'ultima_fecha_trabajada' => $ultimaFechaTrabajada ? Carbon::parse($ultimaFechaTrabajada)->format('d/m/Y') : null,
                 'fecha_anterior_trabajada' => $ultimaFechaTrabajada ? Carbon::parse($ultimaFechaTrabajada)->format('d/m/Y') : 'Sin dato anterior',
                 'fecha_actual' => Carbon::parse($fecha)->format('d/m/Y'),
@@ -954,6 +955,16 @@ class InventarioHistoricoController extends Controller
                 $resumen['inventario_inicial_total'] += $cantidadInicial;
                 $resumen['inventario_final_total'] += $cantidadActual;
             }
+
+            // Calcular diferencia total
+            $resumen['diferencia_total'] = $resumen['inventario_inicial_total']
+                + $resumen['total_cargos']
+                - $resumen['total_descargos']
+                + $resumen['total_compras']
+                - $resumen['total_devoluciones_compras']
+                - $resumen['total_ventas']
+                + $resumen['total_devoluciones_ventas']
+                - $resumen['inventario_final_total'];
 
             // Ordenar por diferencia (mayor a menor)
             usort($datos, function($a, $b) {
