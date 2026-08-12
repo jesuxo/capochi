@@ -73,6 +73,10 @@
         .totales-row td {
             border-top: 2px solid #61885f !important;
         }
+        .select-sm {
+            font-size: 12px;
+            padding: 4px 8px;
+        }
     </style>
 @endsection
 @section('content')
@@ -90,7 +94,7 @@
                 <div class="card-body">
                     <form method="post" name="form1" id="form1" action="{{ route('mermas.sucursales') }}">
                         <div class="row filter-section">
-                            <div class="col-md-3 mb-2">
+                            <div class="col-md-2 mb-2">
                                 <label class="form-label">Sucursal</label>
                                 <select class="form-select" onChange="$('#form1').submit()" id="idsucu" name="fksucursal">
                                     <option value="" {{($fksucursal=='' or $fksucursal==0)?'selected':''}}>Todas las Sucursales</option>
@@ -102,13 +106,25 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-3 mb-2">
+                            <div class="col-md-2 mb-2">
                                 <label class="form-label">Categoría</label>
                                 <select class="form-select" onChange="$('#form1').submit()" name="codinst">
                                     <option value="" {{($codinst=='' or $codinst==0)?'selected':''}}>Todas las Categorías</option>
                                     @foreach($instancias as $instancia)
                                         <option value="{{$instancia->codinst}}" {{($instancia->codinst == $codinst)?'selected':''}}>
                                             {{ str_repeat('--', $instancia->nivel-1) }} {{ $instancia->descrip }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-md-2 mb-2">
+                                <label class="form-label">Tipo de Merma</label>
+                                <select class="form-select" onChange="$('#form1').submit()" name="codoper">
+                                    <option value="" {{($codoper=='' or $codoper==0)?'selected':''}}>Todas las Mermas</option>
+                                    @foreach($operacionesMerma as $oper)
+                                        <option value="{{$oper->codoper}}" {{($oper->codoper == $codoper)?'selected':''}}>
+                                            {{ $oper->descrip }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -144,7 +160,7 @@
                                     <th rowspan="2" style="min-width: 200px;">Producto</th>
                                     <th rowspan="2" style="min-width: 150px;">Categoría</th>
                                     @foreach($sucursales as $idSuc => $nombreSuc)
-                                        <th colspan="2" class="tdlineff titulo" style="min-width: 100px;">
+                                        <th class="tdlineff titulo" style="min-width: 80px;">
                                             {{ $nombreSuc }}
                                         </th>
                                     @endforeach
@@ -155,7 +171,6 @@
                                 <tr>
                                     @foreach($sucursales as $idSuc => $nombreSuc)
                                         <th style="font-size: 10px; background-color: #4a6b48;">Cantidad</th>
-                                        <th style="font-size: 10px; background-color: #4a6b48;">Operación</th>
                                     @endforeach
                                 </tr>
                                 </thead>
@@ -175,7 +190,7 @@
                                             <i class="bi bi-folder me-1"></i> {{ $categoria }}
                                         </td>
                                         @foreach($sucursales as $idSuc => $nombreSuc)
-                                            <td colspan="2" class="tdline"></td>
+                                            <td class="tdline"></td>
                                         @endforeach
                                         @if(count($sucursales) > 1)
                                             <td class="tdline"></td>
@@ -210,15 +225,8 @@
                                                 <td class="tdline text-center">
                                                     @if($cantidad > 0)
                                                         <span class="merma-badge {{ $badgeClass }}">
-                                                        {{ ($exdecimal) ? number_format($cantidad, 3, ',', '.') : number_format($cantidad, 0, ',', '.') }}
-                                                    </span>
-                                                    @else
-                                                        -
-                                                    @endif
-                                                </td>
-                                                <td class="tdline text-center" style="font-size: 10px; color: #6c757d;">
-                                                    @if($cantidad > 0)
-                                                        {{ $producto['operacion'] ?? 'Merma' }}
+                                                            {{ ($exdecimal) ? number_format($cantidad, 3, ',', '.') : number_format($cantidad, 0, ',', '.') }}
+                                                        </span>
                                                     @else
                                                         -
                                                     @endif
@@ -239,7 +247,7 @@
                                     @endforeach
                                 @empty
                                     <tr>
-                                        <td colspan="{{ count($sucursales) * 2 + 3 }}" class="text-center py-4">
+                                        <td colspan="{{ count($sucursales) + 3 }}" class="text-center py-4">
                                             <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                                             <h5>No hay registros de mermas</h5>
                                             <p class="text-muted">No se encontraron operaciones de merma para el período seleccionado.</p>
@@ -252,7 +260,7 @@
                                     <tr class="totales-row">
                                         <td colspan="3" class="text-end fw-bold">TOTAL MERMAS</td>
                                         @foreach($sucursales as $idSuc => $nombreSuc)
-                                            <td class="text-center fw-bold" colspan="2">
+                                            <td class="text-center fw-bold">
                                                 {{ number_format($totalesSucursal[$idSuc], 0, ',', '.') }}
                                             </td>
                                         @endforeach

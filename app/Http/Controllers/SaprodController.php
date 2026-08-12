@@ -415,9 +415,16 @@ class SaprodController extends Controller
             ->orderBy('descrip', 'asc')
             ->get();
 
+        // Obtener operaciones de merma para el filtro
+        $operacionesMerma = Saoper::where('comercial', $comercialid)
+            ->where('merma', 1)
+            ->orderBy('orden', 'asc')
+            ->get();
+
         // Parámetros de filtro
         $fksucursal   = $request->input('fksucursal');
         $codinst      = $request->input('codinst');
+        $codoper      = $request->input('codoper'); // Nuevo filtro por operación
         $fechasreport = $request->input('fechasreport');
         $fechashoy    = Carbon::now()->format('d/m/Y');
 
@@ -457,9 +464,7 @@ class SaprodController extends Controller
                 'c.id as fk_sucursal',
                 'e.descrip as instancia',
                 'e.codalte',
-                'f.descrip as operacion',
-                'f.codoper',
-                DB::raw('SUM(b.Cantidad ) as cantidad_merma')
+                DB::raw('SUM(b.Cantidad) as cantidad_merma')
             ])
             ->join('saprod as a', 'a.codprod', '=', 'b.CodItem')
             ->join('sasucursal as c', 'c.id', '=', 'b.fk_sucursal')
@@ -487,11 +492,14 @@ class SaprodController extends Controller
             $query->where('a.codinst', $codinst);
         }
 
+        if ($codoper) {
+            $query->where('f.codoper', $codoper);
+        }
+
         $listado = $query->groupBy([
             'a.codprod', 'a.descrip', 'a.exdecimal',
             'c.descrip', 'c.id',
-            'e.descrip', 'e.codalte',
-            'f.descrip', 'f.codoper'
+            'e.descrip', 'e.codalte'
         ])
             ->orderBy('e.codalte')
             ->get();
@@ -514,9 +522,7 @@ class SaprodController extends Controller
 
             $itemmermas[$merma->instancia][$merma->codprod] = [
                 'descrip'   => $merma->producto,
-                'exdecimal' => $merma->exdecimal,
-                'codoper'   => $merma->codoper,
-                'operacion' => $merma->operacion
+                'exdecimal' => $merma->exdecimal
             ];
         }
 
@@ -530,9 +536,11 @@ class SaprodController extends Controller
             'itemmermas',
             'cantidadprod',
             'codinst',
+            'codoper',
             'fksucursal',
             'allsucursales',
-            'instancias'
+            'instancias',
+            'operacionesMerma'
         ));
     }
 
