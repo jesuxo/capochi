@@ -154,23 +154,23 @@
         <div class="col-md-3 col-sm-6 mb-3">
             <div class="kpi-card azul">
                 <div class="kpi-label"><i class="bi bi-cash-stack me-1"></i> Total Facturado (Neto)</div>
-                <div class="kpi-value">$ {{ number_format($totales['total_facturado_neto'], 2, ',', '.') }}</div>
+                <div class="kpi-value"> {{ number_format($totales['total_facturado_neto'], 2, ',', '.') }}</div>
                 <div class="kpi-sub">
-                    Base: $ {{ number_format($totales['base_gravable_neta'], 2, ',', '.') }}
+                    Base:  {{ number_format($totales['base_gravable_neta'], 2, ',', '.') }}
                     &nbsp;|&nbsp;
-                    Exento: $ {{ number_format($totales['exento_neto'], 2, ',', '.') }}
+                    Exento: {{ number_format($totales['exento_neto'], 2, ',', '.') }}
                 </div>
             </div>
         </div>
         <div class="col-md-3 col-sm-6 mb-3">
             <div class="kpi-card morado">
                 <div class="kpi-label"><i class="bi bi-percent me-1"></i> Débito Fiscal (IVA Neto)</div>
-                <div class="kpi-value">$ {{ number_format($totales['debito_fiscal_neto'], 2, ',', '.') }}</div>
+                <div class="kpi-value"> {{ number_format($totales['debito_fiscal_neto'], 2, ',', '.') }}</div>
                 <div class="kpi-sub">
-                    IVA facturado: $ {{ number_format($totales['iva_facturado'], 2, ',', '.') }}
+                    IVA facturado:  {{ number_format($totales['iva_facturado'], 2, ',', '.') }}
                     <br>
                     <span class="text-danger">
-                    - Devoluciones: $ {{ number_format($totales['iva_devoluciones'], 2, ',', '.') }}
+                    - Devoluciones:  {{ number_format($totales['iva_devoluciones'], 2, ',', '.') }}
                 </span>
                 </div>
             </div>
@@ -178,9 +178,9 @@
         <div class="col-md-3 col-sm-6 mb-3">
             <div class="kpi-card verde">
                 <div class="kpi-label"><i class="bi bi-wallet2 me-1"></i> Contado / Crédito</div>
-                <div class="kpi-value">$ {{ number_format($totales['contado_neto'], 2, ',', '.') }}</div>
+                <div class="kpi-value"> {{ number_format($totales['contado_neto'], 2, ',', '.') }}</div>
                 <div class="kpi-sub">
-                    Crédito: $ {{ number_format($totales['credito_neto'], 2, ',', '.') }}
+                    Crédito:  {{ number_format($totales['credito_neto'], 2, ',', '.') }}
                 </div>
             </div>
         </div>
@@ -276,22 +276,22 @@
                                         {{ number_format($r->total_devoluciones, 0, ',', '.') }}
                                     </td>
                                     <td class="text-end">
-                                        $ {{ number_format($r->total_facturado_neto, 2, ',', '.') }}
+                                        {{ number_format($r->total_facturado_neto, 2, ',', '.') }}
                                     </td>
                                     <td class="text-end">
-                                        $ {{ number_format($r->base_gravable_neta, 2, ',', '.') }}
+                                        {{ number_format($r->base_gravable_neta, 2, ',', '.') }}
                                     </td>
                                     <td class="text-end">
-                                        $ {{ number_format($r->exento_neto, 2, ',', '.') }}
+                                        {{ number_format($r->exento_neto, 2, ',', '.') }}
                                     </td>
                                     <td class="text-end text-success">
-                                        $ {{ number_format($r->iva_facturado, 2, ',', '.') }}
+                                        {{ number_format($r->iva_facturado, 2, ',', '.') }}
                                     </td>
                                     <td class="text-end text-danger">
-                                        $ {{ number_format($r->iva_devoluciones, 2, ',', '.') }}
+                                        {{ number_format($r->iva_devoluciones, 2, ',', '.') }}
                                     </td>
                                     <td class="text-end fw-bold" style="color:#6f42c1; background:#faf5ff;">
-                                        $ {{ number_format($r->debito_fiscal_neto, 2, ',', '.') }}
+                                        {{ number_format($r->debito_fiscal_neto, 2, ',', '.') }}
                                     </td>
                                     <td class="text-center" style="min-width:100px;">
                                         <div class="d-flex align-items-center gap-1">
@@ -311,13 +311,13 @@
                                 <td colspan="2" class="tdlineff">TOTALES</td>
                                 <td class="text-center text-success">{{ number_format($totales['total_facturas'], 0, ',', '.') }}</td>
                                 <td class="text-center text-danger">{{ number_format($totales['total_devoluciones'], 0, ',', '.') }}</td>
-                                <td class="text-end">$ {{ number_format($totales['total_facturado_neto'], 2, ',', '.') }}</td>
-                                <td class="text-end">$ {{ number_format($totales['base_gravable_neta'], 2, ',', '.') }}</td>
-                                <td class="text-end">$ {{ number_format($totales['exento_neto'], 2, ',', '.') }}</td>
-                                <td class="text-end text-success">$ {{ number_format($totales['iva_facturado'], 2, ',', '.') }}</td>
-                                <td class="text-end text-danger">$ {{ number_format($totales['iva_devoluciones'], 2, ',', '.') }}</td>
+                                <td class="text-end">{{ number_format($totales['total_facturado_neto'], 2, ',', '.') }}</td>
+                                <td class="text-end">{{ number_format($totales['base_gravable_neta'], 2, ',', '.') }}</td>
+                                <td class="text-end">{{ number_format($totales['exento_neto'], 2, ',', '.') }}</td>
+                                <td class="text-end text-success">{{ number_format($totales['iva_facturado'], 2, ',', '.') }}</td>
+                                <td class="text-end text-danger">{{ number_format($totales['iva_devoluciones'], 2, ',', '.') }}</td>
                                 <td class="text-end" style="color:#6f42c1; background:#f3e8ff;">
-                                    $ {{ number_format($totales['debito_fiscal_neto'], 2, ',', '.') }}
+                                    {{ number_format($totales['debito_fiscal_neto'], 2, ',', '.') }}
                                 </td>
                                 <td class="text-center">100%</td>
                             </tr>
@@ -329,43 +329,7 @@
         </div>
     </div>
 
-    {{-- ========== TOP SUCURSALES (RANKING VISUAL) ========== --}}
-    @if($resultados->count() > 0)
-        <div class="row mt-2">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title mb-0">
-                            <i class="bi bi-trophy-fill me-2 text-warning"></i>
-                            Ranking: Sucursales con Mayor Débito Fiscal
-                        </h4>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            @foreach($resultados->take(3) as $idx => $top)
-                                <div class="col-md-4 mb-3">
-                                    <div class="kpi-card {{ $idx == 0 ? '' : ($idx == 1 ? 'azul' : 'verde') }}" style="text-align:center;">
-                                        <div style="font-size: 40px; margin-bottom: 10px;">
-                                            @if($idx == 0) 🥇
-                                            @elseif($idx == 1) 🥈
-                                            @else 🥉
-                                            @endif
-                                        </div>
-                                        <h5 class="mb-1">{{ $top->sucursal_nombre }}</h5>
-                                        <div class="kpi-value">$ {{ number_format($top->debito_fiscal_neto, 2, ',', '.') }}</div>
-                                        <div class="kpi-sub">
-                                            {{ number_format($top->total_facturas, 0, ',', '.') }} facturas |
-                                            Total: $ {{ number_format($top->total_facturado_neto, 2, ',', '.') }}
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
+
 
 @endsection
 
@@ -421,7 +385,7 @@
                             label: function(context) {
                                 let label = context.dataset.label || '';
                                 if (label) label += ': ';
-                                label += '$ ' + context.parsed.y.toLocaleString('es-VE', {
+                                label += ' ' + context.parsed.y.toLocaleString('es-VE', {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2
                                 });
@@ -437,12 +401,12 @@
                         position: 'left',
                         title: {
                             display: true,
-                            text: 'Débito Fiscal ($)',
+                            text: 'Débito Fiscal ',
                             color: '#6f42c1'
                         },
                         ticks: {
                             callback: function(value) {
-                                return '$' + value.toLocaleString('es-VE');
+                                return value.toLocaleString('es-VE');
                             },
                             color: '#6f42c1'
                         }
@@ -453,12 +417,12 @@
                         position: 'right',
                         title: {
                             display: true,
-                            text: 'Total Facturado ($)',
+                            text: 'Total Facturado ',
                             color: '#0072c5'
                         },
                         ticks: {
                             callback: function(value) {
-                                return '$' + value.toLocaleString('es-VE');
+                                return  value.toLocaleString('es-VE');
                             },
                             color: '#0072c5'
                         },
@@ -513,7 +477,7 @@
                             label: function(context) {
                                 const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                 const porc = total > 0 ? (context.parsed / total) * 100 : 0;
-                                return context.label + ': $ ' +
+                                return context.label + ': ' +
                                     context.parsed.toLocaleString('es-VE', {
                                         minimumFractionDigits: 2,
                                         maximumFractionDigits: 2
