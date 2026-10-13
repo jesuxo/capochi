@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 use App\Http\Controllers\UserSucursalController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\SaacxcController;
 use App\Http\Controllers\InventarioHistoricoController;
 
@@ -137,6 +138,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('signup', 'App\Http\Controllers\Auth\RegisterController@signup')->name('signup');
 
     Route::get('revisarcosas', [App\Http\Controllers\HomeController::class, 'revisarcosas']);
+
+    Route::get('/reporte/debito-fiscal', [HomeController::class, 'reporteDebitoFiscal'])->name('reporte.debito.fiscal');
+    Route::post('/reporte/debito-fiscal', [HomeController::class, 'reporteDebitoFiscal']);
 
     Route::post('saprod/update', [App\Http\Controllers\SaprodController::class, 'updateSaprodData']);
     Route::post('saprod/saexis', [App\Http\Controllers\SaprodController::class, 'updateSaexisData']);

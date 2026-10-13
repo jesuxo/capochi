@@ -23,6 +23,110 @@ class HomeController extends Controller
         $this->middleware('auth');
     }
 
+
+    public function reporteDebitoFiscal(Request $request)
+    {
+        $comercialid = session('comercialid');
+        if (!$comercialid) {
+            session(['comercialid' => 1]);
+            $comercialid = 1;
+        }
+
+        $allsucursales = Sasucursal::where('fk_comercial', $comercialid)
+            ->orderBy('descrip', 'asc')
+            ->get();
+
+        // ========== PROCESAR FECHAS ==========
+        $fechasreport = $request->fechasreport;
+        $fechashoy    = Carbon::now()->format('d/m/Y');
+
+        if (!$fechasreport) {
+            $fechasreport = $fechashoy . ' to ' . $fechashoy;
+        }
+
+        $fechasaux = str_replace(' ', '', $fechasreport);
+        $fec1 = $fec2 = '';
+
+        if (strpos($fechasaux, "to")) {
+            list($fec1, $fec2) = explode("to", $fechasaux);
+        } else {
+            list($d1, $m1, $y1) = explode("/", $fechasreport);
+            $fec1 = "$d1/$m1/$y1";
+            $fec2 = $fec1;
+            $fechasreport = "$fec1 to $fec2";
+        }
+
+        $fecha1 = $fec1;
+        $fecha2 = $fec2;
+
+        list($d1, $m1, $y1) = explode("/", $fec1);
+        list($d2, $m2, $y2) = explode("/", $fec2);
+
+        $fec1Sql = "$y1-$m1-$d1";
+        $fec2Sql = "$y2-$m2-$d2";
+
+        // ========== CONSULTA PRINCIPAL POR SUCURSAL ==========
+        $resultados = DB::table('safact as f')
+            ->select([
+                'f.fk_sucursal',
+                's.descrip as sucursal_nombre',
+                DB::raw("COUNT(CASE WHEN f.TipoFac = 'A' THEN 1 END) as total_facturas"),
+                DB::raw("COUNT(CASE WHEN f.TipoFac = 'B' THEN 1 END) as total_devoluciones"),
+                DB::raw("SUM(CASE WHEN f.TipoFac = 'A' THEN f.mtotax ELSE 0 END) as iva_facturado"),
+                DB::raw("SUM(CASE WHEN f.TipoFac = 'B' THEN f.mtotax ELSE 0 END) as iva_devoluciones"),
+                DB::raw("SUM(CASE WHEN f.TipoFac = 'A' THEN f.mtotax ELSE 0 END) - SUM(CASE WHEN f.TipoFac = 'B' THEN f.mtotax ELSE 0 END) as debito_fiscal_neto"),
+                DB::raw("SUM(CASE WHEN f.TipoFac = 'A' THEN f.contado ELSE 0 END) - SUM(CASE WHEN f.TipoFac = 'B' THEN f.contado ELSE 0 END) as contado_neto"),
+                DB::raw("SUM(CASE WHEN f.TipoFac = 'A' THEN f.credito ELSE 0 END) - SUM(CASE WHEN f.TipoFac = 'B' THEN f.credito ELSE 0 END) as credito_neto"),
+                DB::raw("SUM(CASE WHEN f.TipoFac = 'A' THEN (f.contado + f.credito) ELSE 0 END) - SUM(CASE WHEN f.TipoFac = 'B' THEN (f.contado + f.credito) ELSE 0 END) as total_facturado_neto"),
+                DB::raw("SUM(CASE WHEN f.TipoFac = 'A' THEN f.tgravable ELSE 0 END) - SUM(CASE WHEN f.TipoFac = 'B' THEN f.tgravable ELSE 0 END) as base_gravable_neta"),
+                DB::raw("SUM(CASE WHEN f.TipoFac = 'A' THEN f.texento ELSE 0 END) - SUM(CASE WHEN f.TipoFac = 'B' THEN f.texento ELSE 0 END) as exento_neto"),
+            ])
+            ->join('sasucursal as s', function ($join) use ($comercialid) {
+                $join->on('s.id', '=', 'f.fk_sucursal')
+                    ->where('s.fk_comercial', '=', $comercialid);
+            })
+            ->whereIn('f.TipoFac', ['A', 'B'])
+            ->where('f.tasa_dolar', '>', 0)
+            ->whereBetween('f.fechat', [
+                $fec1Sql . ' 00:00:00',
+                $fec2Sql . ' 23:59:59'
+            ])
+            ->groupBy('f.fk_sucursal', 's.descrip')
+            ->orderBy('debito_fiscal_neto', 'desc')
+            ->get();
+
+        // ========== TOTALES GENERALES ==========
+        $totales = [
+            'total_facturas'        => $resultados->sum('total_facturas'),
+            'total_devoluciones'    => $resultados->sum('total_devoluciones'),
+            'iva_facturado'         => $resultados->sum('iva_facturado'),
+            'iva_devoluciones'      => $resultados->sum('iva_devoluciones'),
+            'debito_fiscal_neto'    => $resultados->sum('debito_fiscal_neto'),
+            'contado_neto'          => $resultados->sum('contado_neto'),
+            'credito_neto'          => $resultados->sum('credito_neto'),
+            'total_facturado_neto'  => $resultados->sum('total_facturado_neto'),
+            'base_gravable_neta'    => $resultados->sum('base_gravable_neta'),
+            'exento_neto'           => $resultados->sum('exento_neto'),
+        ];
+
+        // ========== DATOS PARA GRÁFICA ==========
+        $graficaSucursales = $resultados->pluck('sucursal_nombre')->toArray();
+        $graficaDebito     = $resultados->pluck('debito_fiscal_neto')->toArray();
+        $graficaFacturado  = $resultados->pluck('total_facturado_neto')->toArray();
+
+        return view('reporteDebitoFiscal', compact(
+            'fechasreport',
+            'fecha1',
+            'fecha2',
+            'allsucursales',
+            'resultados',
+            'totales',
+            'graficaSucursales',
+            'graficaDebito',
+            'graficaFacturado'
+        ));
+    }
+
     public function reporteventa(Request $request)
     {
         $comercialid = session('comercialid');

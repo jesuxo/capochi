@@ -83,6 +83,11 @@
                                     <i class="bi bi-arrow-left-right me-2"></i> Operaciones por sucursal
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a href="/reporte/debito-fiscal" class="nav-link">
+                                    <i class="bi bi-arrow-left-right me-2"></i> D&eacute;bito Fiscal
+                                </a>
+                            </li>
                         </ul>
                     </div>
                 </li>
