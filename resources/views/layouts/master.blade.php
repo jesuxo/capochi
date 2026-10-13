@@ -55,7 +55,7 @@
             var url = 'data:application/vnd.ms-excel,' + encodeURIComponent(html);
             var link = document.createElement('a');
             link.setAttribute('href', url);
-            link.setAttribute('download', 'existencias_por_marcas.xls');
+            link.setAttribute('download', 'archivo_excel.xls');
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
