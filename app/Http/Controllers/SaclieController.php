@@ -380,7 +380,7 @@ class SaclieController extends Controller
                 }
             }
 
-        $clientes = Saclie::whereRaw("codclie not in (select codclie from sacliesucursal where fk_sucursal=$sucursalid )")->limit('500')->get();
+        $clientes = Saclie::whereRaw("codclie not in (select codclie from sacliesucursal where fk_sucursal=$sucursalid )")->orderBy('id','desc')->limit('500')->get();
 
         $prodfalt = Saprod::whereRaw("codprod not in (select codprod from saprodsucursal where fk_sucursal=$sucursalid )")->limit('500')->get();
         $prodflag = 0;
