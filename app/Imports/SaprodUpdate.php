@@ -21,7 +21,6 @@ class SaprodUpdate implements ToCollection, WithHeadingRow
             session(['comercialid' => 1]);
             $comercial = 1;
         }
-        dd($comercial);
 
         $arraysucursales = auth()->user()->getSucursalesIdsComercialActual();
         $arraysucursales = implode(",",$arraysucursales);
