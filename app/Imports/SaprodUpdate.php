@@ -21,9 +21,10 @@ class SaprodUpdate implements ToCollection, WithHeadingRow
             session(['comercialid' => 1]);
             $comercial = 1;
         }
-        $allsucursales = Sasucursal::where('fk_comercial', $comercial)->orderBy('descrip','asc')->get();
-        print_r($allsucursales);
-        dd('asd');
+        dd($comercial);
+
+        $arraysucursales = auth()->user()->getSucursalesIdsComercialActual();
+        $arraysucursales = implode(",",$arraysucursales);
 
         foreach ($rows as $row)
         {
@@ -41,7 +42,8 @@ class SaprodUpdate implements ToCollection, WithHeadingRow
                 if(isset($row['codinst'])   and $row['codinst']    > 0  ) $saprod->codinst    = $row['codinst'];
                 $saprod->save();
 
-                $prodsucursal = Saprodsucursal::with('producto')->where('codprod', $row['codprod'])->get();
+                $prodsucursal = Saprodsucursal::whereRaw("fk_sucursal in ($arraysucursales)")
+                                                ->where('codprod', $row['codprod'])->get();
                 if($prodsucursal)
                     foreach ($prodsucursal as $item){
                         if($item->producto->comercial == $comercial)
