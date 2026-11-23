@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Models\Saprod;
 use App\Models\Saprodsucursal;
+use App\Models\Sasucursal;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -20,6 +21,9 @@ class SaprodUpdate implements ToCollection, WithHeadingRow
             session(['comercialid' => 1]);
             $comercial = 1;
         }
+        $allsucursales = Sasucursal::where('fk_comercial', $comercial)->orderBy('descrip','asc')->get();
+        print_r($allsucursales);
+        dd('asd');
 
         foreach ($rows as $row)
         {

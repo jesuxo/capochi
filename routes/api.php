@@ -61,12 +61,12 @@ Route::group([ 'middleware' => 'check.user'], function () {
     });
 
     Route::controller(\App\Http\Controllers\SaprodController::class)->group(function () {
-        Route::post('saprod/syncasd/list', 'list');
+        Route::post('saprod/sync/list', 'list');
         Route::post('saprod/get/listprodubic', 'listprodubic');
         Route::post('saprod/get/productosinstsancias', 'productosinstsancias');
         Route::post('saprod/get/confirmarinventario', 'confirmarinventario');
         Route::post('saprod/get/productosinstsanciascodalte', 'productosinstsanciascodalte');
-        Route::post('saprod/syasnc/saprodsucursal', 'saprodsucursal');
+        Route::post('saprod/sync/saprodsucursal', 'saprodsucursal');
     });
 
     Route::controller(\App\Http\Controllers\SacompController::class)->group(function () {
